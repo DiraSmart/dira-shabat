@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
@@ -29,6 +30,13 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Dira Shabat from a config entry."""
     hass.data.setdefault(DOMAIN, {})
+
+    # Register the Lovelace card JS file as a static path
+    hass.http.register_static_path(
+        f"/{DOMAIN}/dira-shabat-card.js",
+        str(Path(__file__).parent / "www" / "dira-shabat-card.js"),
+        cache_headers=True,
+    )
 
     coordinator = DiraShabatCoordinator(hass, entry.entry_id)
 

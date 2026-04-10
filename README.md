@@ -40,7 +40,7 @@ Integración personalizada de Home Assistant para gestionar el modo Shabat y fes
 
 Go to **Settings > Dashboards > Resources** and add:
 
-- URL: `/local/dira-shabat-card.js`
+- URL: `/dira_shabat/dira-shabat-card.js`
 - Type: JavaScript Module
 
 ### Add the card
