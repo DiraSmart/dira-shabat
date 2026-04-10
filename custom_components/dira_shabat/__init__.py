@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState, HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.components.http import StaticPathConfig
 
 from .const import (
     CONF_DEFAULT_ALMUERZO,
@@ -35,11 +36,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     card_url = f"/{DOMAIN}/dira-shabat-card.js"
     should_register = not hass.data[DOMAIN].get("frontend_registered")
     if should_register:
-        hass.http.register_static_path(
-            card_url,
-            str(Path(__file__).parent / "www" / "dira-shabat-card.js"),
-            cache_headers=False,
-        )
+        await hass.http.async_register_static_paths([
+            StaticPathConfig(
+                card_url,
+                str(Path(__file__).parent / "www" / "dira-shabat-card.js"),
+                False,
+            )
+        ])
         # Inject JS into frontend directly - most reliable method
         from homeassistant.components.frontend import add_extra_js_url
         add_extra_js_url(hass, card_url)
