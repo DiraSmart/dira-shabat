@@ -6,8 +6,8 @@
         "description": "Configure Shabbat and Holiday management. Requires the Jewish Calendar integration to be installed.",
         "data": {
           "language": "Language",
-          "default_cena": "Default Dinner (ON/OFF after reset)",
-          "default_almuerzo": "Default Lunch (ON/OFF after reset)",
+          "default_cena": "Dinner always on by default",
+          "default_almuerzo": "Lunch always on by default",
           "reset_delay": "Reset delay (seconds after issur melacha ends)"
         }
       }
@@ -22,8 +22,8 @@
         "title": "Dira Shabat Options",
         "data": {
           "language": "Language",
-          "default_cena": "Default Dinner (ON/OFF after reset)",
-          "default_almuerzo": "Default Lunch (ON/OFF after reset)",
+          "default_cena": "Dinner always on by default",
+          "default_almuerzo": "Lunch always on by default",
           "reset_delay": "Reset delay (seconds after issur melacha ends)"
         }
       }
