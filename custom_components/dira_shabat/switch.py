@@ -11,16 +11,21 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from homeassistant.helpers.device_registry import DeviceEntryType
+from homeassistant.helpers.entity import DeviceInfo
+
 from .const import (
     CONF_DEFAULT_ALMUERZO,
     CONF_DEFAULT_CENA,
     DEFAULT_ALMUERZO,
     DEFAULT_CENA,
+    DEVICE_NAME,
     DOMAIN,
     ICON_FOOD_DINNER,
     ICON_FOOD_LUNCH,
     ICON_FORCE_SHOW,
     ICON_SHABBAT_MODE,
+    MANUFACTURER,
     MAX_PERIOD_DAYS,
     SWITCH_FORZAR_MOSTRAR,
     SWITCH_MODO_SHABAT,
@@ -61,6 +66,16 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
+def _device_info(entry: ConfigEntry) -> DeviceInfo:
+    """Return device info for grouping all entities under one device."""
+    return DeviceInfo(
+        identifiers={(DOMAIN, entry.entry_id)},
+        name=DEVICE_NAME,
+        manufacturer=MANUFACTURER,
+        entry_type=DeviceEntryType.SERVICE,
+    )
+
+
 class DiraShabatModeSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
     """Switch for Shabbat/Holiday mode."""
 
@@ -77,6 +92,7 @@ class DiraShabatModeSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
         self._entry = entry
         self._language = language
         self._attr_unique_id = f"{entry.entry_id}_{SWITCH_MODO_SHABAT}"
+        self._attr_device_info = _device_info(entry)
         self._attr_icon = ICON_SHABBAT_MODE
         t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
         self._attr_name = t["shabbat_mode"]
@@ -137,6 +153,7 @@ class DiraShabatForceShowSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
         self._entry = entry
         self._language = language
         self._attr_unique_id = f"{entry.entry_id}_{SWITCH_FORZAR_MOSTRAR}"
+        self._attr_device_info = _device_info(entry)
         self._attr_icon = ICON_FORCE_SHOW
         t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
         self._attr_name = t["force_show"]
@@ -185,6 +202,7 @@ class DiraShabatMealSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
         self._meal_type = meal_type
         self._language = language
         self._attr_unique_id = f"{entry.entry_id}_dia_{day_number}_{meal_type}"
+        self._attr_device_info = _device_info(entry)
         self._attr_icon = ICON_FOOD_DINNER if meal_type == "cena" else ICON_FOOD_LUNCH
 
         t = TRANSLATIONS.get(language, TRANSLATIONS["es"])

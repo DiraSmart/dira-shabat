@@ -9,10 +9,23 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, TRANSLATIONS
+from homeassistant.helpers.device_registry import DeviceEntryType
+from homeassistant.helpers.entity import DeviceInfo
+
+from .const import DEVICE_NAME, DOMAIN, MANUFACTURER, TRANSLATIONS
 from .coordinator import DiraShabatCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _device_info(entry: ConfigEntry) -> DeviceInfo:
+    """Return device info for grouping all entities under one device."""
+    return DeviceInfo(
+        identifiers={(DOMAIN, entry.entry_id)},
+        name=DEVICE_NAME,
+        manufacturer=MANUFACTURER,
+        entry_type=DeviceEntryType.SERVICE,
+    )
 
 
 async def async_setup_entry(
@@ -50,6 +63,7 @@ class DiraShabatShowTimesSensor(CoordinatorEntity, BinarySensorEntity):
         self._entry = entry
         t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
         self._attr_unique_id = f"{entry.entry_id}_mostrar_horarios"
+        self._attr_device_info = _device_info(entry)
         self._attr_name = t["show_times"]
         self._attr_icon = "mdi:eye"
 
@@ -85,6 +99,7 @@ class DiraShabatTomorrowIssurSensor(CoordinatorEntity, BinarySensorEntity):
         self._entry = entry
         t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
         self._attr_unique_id = f"{entry.entry_id}_tomorrow_issur"
+        self._attr_device_info = _device_info(entry)
         self._attr_name = t["tomorrow_issur"]
         self._attr_icon = "mdi:calendar-arrow-right"
 
@@ -119,6 +134,7 @@ class DiraShabatMealTodaySensor(CoordinatorEntity, BinarySensorEntity):
         t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
         meal_label = t["dinner"] if meal_type == "cena" else t["lunch"]
         self._attr_unique_id = f"{entry.entry_id}_{meal_type}_hoy"
+        self._attr_device_info = _device_info(entry)
         self._attr_name = f"{meal_label} hoy" if language == "es" else f"{meal_label} today"
         self._attr_icon = "mdi:food-turkey" if meal_type == "cena" else "mdi:food-takeout-box"
 
@@ -197,6 +213,7 @@ class DiraShabatNocheEntradaSensor(CoordinatorEntity, BinarySensorEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_noche_entrada"
+        self._attr_device_info = _device_info(entry)
         if language == "es":
             self._attr_name = "Noche de entrada"
         else:
@@ -258,6 +275,7 @@ class DiraShabatUltimoDiaSensor(CoordinatorEntity, BinarySensorEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_ultimo_dia"
+        self._attr_device_info = _device_info(entry)
         if language == "es":
             self._attr_name = "Último día"
         else:

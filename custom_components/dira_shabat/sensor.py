@@ -10,11 +10,16 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from homeassistant.helpers.device_registry import DeviceEntryType
+from homeassistant.helpers.entity import DeviceInfo
+
 from .const import (
+    DEVICE_NAME,
     DOMAIN,
     ICON_CANDLE,
     ICON_MOON,
     ICON_SYNAGOGUE,
+    MANUFACTURER,
     TRANSLATIONS,
 )
 from .coordinator import DiraShabatCoordinator
@@ -59,6 +64,12 @@ class DiraShabatBaseSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._language = language
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name=DEVICE_NAME,
+            manufacturer=MANUFACTURER,
+            entry_type=DeviceEntryType.SERVICE,
+        )
 
 
 class DiraShabatCandleLightingSensor(DiraShabatBaseSensor):

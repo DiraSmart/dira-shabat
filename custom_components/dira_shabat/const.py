@@ -1,7 +1,9 @@
 """Constants for the Dira Shabat integration."""
+from __future__ import annotations
 
 DOMAIN = "dira_shabat"
 MANUFACTURER = "Dira Shabat"
+DEVICE_NAME = "Dira Shabat"
 
 # Config keys
 CONF_DEFAULT_CENA = "default_cena"
