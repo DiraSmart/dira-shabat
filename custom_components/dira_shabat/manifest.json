@@ -3,7 +3,7 @@
   "name": "Dira Shabat",
   "codeowners": ["@jbran"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["frontend"],
   "after_dependencies": ["jewish_calendar"],
   "documentation": "https://github.com/jbran/dira-shabat",
   "iot_class": "local_polling",
