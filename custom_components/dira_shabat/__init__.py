@@ -45,10 +45,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 False,
             )
         ])
-        # Inject JS into frontend directly - most reliable method
         from homeassistant.components.frontend import add_extra_js_url
         add_extra_js_url(hass, card_url)
         hass.data[DOMAIN]["frontend_registered"] = True
+        _LOGGER.info("Registered Lovelace card at %s", card_url)
 
     diaspora = entry.data.get(CONF_DIASPORA, DEFAULT_DIASPORA)
     coordinator = DiraShabatCoordinator(hass, entry.entry_id, diaspora=diaspora)

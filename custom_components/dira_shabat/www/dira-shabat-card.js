@@ -3,6 +3,12 @@
  * Manages Shabbat and Jewish Holiday display with meal toggles
  */
 
+console.info(
+  `%c DIRA-SHABAT-CARD %c v1.0.0 `,
+  "color: white; background: #6a3de8; font-weight: 700; padding: 2px 8px; border-radius: 4px 0 0 4px;",
+  "color: #6a3de8; background: #ede7f6; font-weight: 700; padding: 2px 8px; border-radius: 0 4px 4px 0;"
+);
+
 const TRANSLATIONS = {
   es: {
     candle_lighting: "Encendido velas",
@@ -128,9 +134,11 @@ class DiraShabatCard extends HTMLElement {
 
     // Check visibility
     const showTimesState = this._getState(this._config.show_times_entity);
-    const shouldShow = showTimesState && showTimesState.state === "on";
+    // Show if: entity is "on", entity doesn't exist yet, or always_show is true
+    const entityExists = showTimesState && showTimesState.state !== "unavailable";
+    const shouldShow = !entityExists || showTimesState.state === "on" || this._config.always_show;
 
-    if (!shouldShow && !this._config.always_show) {
+    if (!shouldShow) {
       this.shadowRoot.innerHTML = "";
       this.style.display = "none";
       return;
