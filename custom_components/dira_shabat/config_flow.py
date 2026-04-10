@@ -8,7 +8,6 @@ import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
 
 from .const import (
     CONF_DEFAULT_ALMUERZO,
@@ -34,7 +33,7 @@ class DiraShabatConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> Any:
         """Handle the initial step."""
         errors: dict[str, str] = {}
 
@@ -72,29 +71,25 @@ class DiraShabatConfigFlow(ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
         """Get the options flow."""
-        return DiraShabatOptionsFlow(config_entry)
+        return DiraShabatOptionsFlow()
 
 
 class DiraShabatOptionsFlow(OptionsFlow):
     """Handle options flow for Dira Shabat."""
 
-    def __init__(self, config_entry: ConfigEntry) -> None:
-        """Initialize options flow."""
-        self._config_entry = config_entry
-
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> Any:
         """Manage the options."""
         if user_input is not None:
             # Update the config entry data
             self.hass.config_entries.async_update_entry(
-                self._config_entry,
-                data={**self._config_entry.data, **user_input},
+                self.config_entry,
+                data={**self.config_entry.data, **user_input},
             )
             return self.async_create_entry(title="", data=user_input)
 
-        current = self._config_entry.data
+        current = self.config_entry.data
 
         return self.async_show_form(
             step_id="init",
