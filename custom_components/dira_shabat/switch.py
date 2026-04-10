@@ -17,8 +17,10 @@ from homeassistant.helpers.entity import DeviceInfo
 from .const import (
     CONF_DEFAULT_ALMUERZO,
     CONF_DEFAULT_CENA,
+    CONF_LANGUAGE,
     DEFAULT_ALMUERZO,
     DEFAULT_CENA,
+    DEFAULT_LANGUAGE,
     DEVICE_NAME,
     DOMAIN,
     ICON_FOOD_DINNER,
@@ -43,7 +45,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up Dira Shabat switches from a config entry."""
     coordinator: DiraShabatCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    language = entry.data.get("language", "es")
+    language = entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE)
 
     entities: list[SwitchEntity] = [
         DiraShabatModeSwitch(coordinator, entry, language),

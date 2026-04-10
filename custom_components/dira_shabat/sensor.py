@@ -14,6 +14,8 @@ from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import (
+    CONF_LANGUAGE,
+    DEFAULT_LANGUAGE,
     DEVICE_NAME,
     DOMAIN,
     ICON_CANDLE,
@@ -34,7 +36,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up Dira Shabat sensors from a config entry."""
     coordinator: DiraShabatCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    language = entry.data.get("language", "es")
+    language = entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE)
 
     async_add_entities([
         DiraShabatCandleLightingSensor(coordinator, entry, language),

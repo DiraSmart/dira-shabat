@@ -12,7 +12,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DEVICE_NAME, DOMAIN, MANUFACTURER, TRANSLATIONS
+from .const import CONF_LANGUAGE, DEFAULT_LANGUAGE, DEVICE_NAME, DOMAIN, MANUFACTURER, TRANSLATIONS
 from .coordinator import DiraShabatCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up Dira Shabat binary sensors from a config entry."""
     coordinator: DiraShabatCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    language = entry.data.get("language", "es")
+    language = entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE)
 
     async_add_entities([
         DiraShabatShowTimesSensor(coordinator, entry, language),

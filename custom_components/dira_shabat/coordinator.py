@@ -181,17 +181,6 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         tomorrow_info = _has_issur_melacha(tomorrow, self.diaspora)
         tomorrow_issur = tomorrow_info["has_issur"]
 
-        # Tonight is entry night?
-        # True if tomorrow has issur melacha (tonight we enter a new day)
-        # False if tomorrow does NOT have issur (tonight the period ends)
-        noche_entrada = False
-        if is_erev and not is_issur:
-            # Erev: tonight we enter the period
-            noche_entrada = True
-        elif is_issur and tomorrow_info["has_issur"]:
-            # During issur and tomorrow also has issur: tonight enters next day
-            noche_entrada = True
-
         # Is this the last day?
         ultimo_dia = is_issur and not tomorrow_info["has_issur"]
 
@@ -229,7 +218,6 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
             "total_days": len(period_days),
             "ends_today": ends_today,
             "tomorrow_issur": tomorrow_issur,
-            "noche_entrada": noche_entrada,
             "ultimo_dia": ultimo_dia,
             "show_card": show_card,
             "current_day": current_day,
