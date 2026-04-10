@@ -42,7 +42,6 @@ async def async_setup_entry(
         DiraShabatTomorrowIssurSensor(coordinator, entry, language),
         DiraShabatCenaHoySensor(coordinator, entry, language),
         DiraShabatAlmuerzoHoySensor(coordinator, entry, language),
-        DiraShabatNocheEntradaSensor(coordinator, entry, language),
         DiraShabatUltimoDiaSensor(coordinator, entry, language),
     ])
 
@@ -181,65 +180,6 @@ class DiraShabatAlmuerzoHoySensor(DiraShabatMealTodaySensor):
     def __init__(self, coordinator, entry, language):
         """Initialize."""
         super().__init__(coordinator, entry, language, "almuerzo")
-
-
-class DiraShabatNocheEntradaSensor(CoordinatorEntity, BinarySensorEntity):
-    """Binary sensor: is TONIGHT the start of a new day of issur?
-
-    ON when:
-    - erev_shabbat_hag is on (tonight enters the period), OR
-    - issur_melacha is on AND we're NOT on the last day
-      (tonight enters the next day of the period)
-
-    OFF when:
-    - issur_melacha is on AND we're on the last day
-      (tonight the period ENDS with havdalah)
-    - No issur and no erev
-
-    This makes automations trivial:
-      condition: binary_sensor.dira_shabat_noche_entrada = on
-      → only runs on nights that START a new day, never on exit night
-    """
-
-    _attr_has_entity_name = True
-
-    def __init__(
-        self,
-        coordinator: DiraShabatCoordinator,
-        entry: ConfigEntry,
-        language: str,
-    ) -> None:
-        """Initialize the binary sensor."""
-        super().__init__(coordinator)
-        self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}_noche_entrada"
-        self._attr_device_info = _device_info(entry)
-        if language == "es":
-            self._attr_name = "Noche de entrada"
-        else:
-            self._attr_name = "Entry night"
-        self._attr_icon = "mdi:weather-sunset-down"
-
-    @property
-    def is_on(self) -> bool | None:
-        """Return true if tonight starts a new day of issur."""
-        if not self.coordinator.data:
-            return False
-        return self.coordinator.data.get("noche_entrada", False)
-
-    @property
-    def extra_state_attributes(self) -> dict:
-        """Return context about the current state."""
-        if not self.coordinator.data:
-            return {}
-        current_day = self.coordinator.data.get("current_day", 0)
-        total_days = self.coordinator.data.get("total_days", 1)
-        return {
-            "current_day": current_day,
-            "total_days": total_days,
-            "is_last_day": current_day == total_days and current_day > 0,
-            "current_day_name": self.coordinator.data.get("current_day_name", ""),
-        }
 
 
 class DiraShabatUltimoDiaSensor(CoordinatorEntity, BinarySensorEntity):
