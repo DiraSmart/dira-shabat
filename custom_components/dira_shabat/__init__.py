@@ -31,12 +31,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Dira Shabat from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    # Register the Lovelace card JS file as a static path
+    # Register the Lovelace card JS as a static path and frontend resource
+    card_url = f"/{DOMAIN}/dira-shabat-card.js"
     hass.http.register_static_path(
-        f"/{DOMAIN}/dira-shabat-card.js",
+        card_url,
         str(Path(__file__).parent / "www" / "dira-shabat-card.js"),
         cache_headers=True,
     )
+    # Auto-register as Lovelace resource so the user doesn't have to
+    await _async_register_lovelace_resource(hass, card_url)
 
     coordinator = DiraShabatCoordinator(hass, entry.entry_id)
 
@@ -136,6 +139,35 @@ async def _async_reset_after_delay(
             await hass.services.async_call(
                 "switch", almuerzo_service, {"entity_id": almuerzo_entity}
             )
+
+
+async def _async_register_lovelace_resource(
+    hass: HomeAssistant, url: str
+) -> None:
+    """Register the card as a Lovelace resource automatically."""
+    # Use the frontend component to add the resource
+    from homeassistant.components.lovelace import DOMAIN as LOVELACE_DOMAIN
+    from homeassistant.components.lovelace.resources import (
+        ResourceStorageCollection,
+    )
+
+    # Get the lovelace resources collection
+    lovelace_data = hass.data.get(LOVELACE_DOMAIN)
+    if not lovelace_data:
+        return
+
+    resources: ResourceStorageCollection | None = lovelace_data.get("resources")
+    if resources is None:
+        return
+
+    # Check if already registered
+    for resource in resources.async_items():
+        if resource.get("url") == url:
+            return
+
+    # Register it
+    await resources.async_create_item({"res_type": "module", "url": url})
+    _LOGGER.info("Registered Lovelace resource: %s", url)
 
 
 async def _async_update_listener(
