@@ -6,6 +6,7 @@
         "description": "Configure Shabbat and Holiday management. Requires the Jewish Calendar integration to be installed.",
         "data": {
           "language": "Language",
+          "diaspora": "Diaspora (2-day Yom Tov)",
           "default_cena": "Dinner always on by default",
           "default_almuerzo": "Lunch always on by default",
           "reset_delay": "Reset delay (seconds after issur melacha ends)"
@@ -22,6 +23,7 @@
         "title": "Dira Shabat Options",
         "data": {
           "language": "Language",
+          "diaspora": "Diaspora (2-day Yom Tov)",
           "default_cena": "Dinner always on by default",
           "default_almuerzo": "Lunch always on by default",
           "reset_delay": "Reset delay (seconds after issur melacha ends)"

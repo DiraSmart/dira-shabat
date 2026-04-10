@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 from typing import Any
+
+from hdate import HDate
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
@@ -26,10 +28,51 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _has_issur_melacha(check_date: date, diaspora: bool) -> dict[str, Any]:
+    """Check if a specific date has issur melacha using hdate.
+
+    Returns a dict with is_shabbat, is_yom_tov, holiday_name, has_issur.
+    The date refers to the DAYTIME (morning/afternoon) of that secular date.
+    In Jewish calendar terms, the evening before (sunset) started this Jewish day.
+    """
+    is_shabbat = check_date.weekday() == 5  # Saturday
+
+    hd = HDate(check_date, diaspora=diaspora)
+
+    # Get holiday info
+    holiday_name = ""
+    is_yom_tov = False
+
+    if hd.holiday_description:
+        holiday_name = hd.holiday_description
+
+    # Check holiday type for issur melacha
+    # HDate.holiday_type returns HolidayTypes enum
+    # YOM_TOV = days with issur melacha (Pesach 1,2,7,8, Shavuot, RH, YK, Sukkot 1,2, Shmini Atzeret)
+    try:
+        from hdate.htables import HolidayTypes
+        is_yom_tov = hd.holiday_type == HolidayTypes.YOM_TOV
+    except (ImportError, AttributeError):
+        # Fallback: check if holiday_name exists and it's not a minor holiday
+        if holiday_name:
+            is_yom_tov = True
+
+    has_issur = is_shabbat or is_yom_tov
+
+    return {
+        "is_shabbat": is_shabbat,
+        "is_yom_tov": is_yom_tov,
+        "holiday_name": holiday_name,
+        "has_issur": has_issur,
+    }
+
+
 class DiraShabatCoordinator(DataUpdateCoordinator):
     """Coordinator that listens to Jewish Calendar entities and calculates period days."""
 
-    def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
+    def __init__(
+        self, hass: HomeAssistant, entry_id: str, diaspora: bool = True
+    ) -> None:
         """Initialize the coordinator."""
         super().__init__(
             hass,
@@ -38,6 +81,7 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(minutes=5),
         )
         self.entry_id = entry_id
+        self.diaspora = diaspora
         self._unsub_listeners: list = []
 
     async def async_setup(self) -> None:
@@ -78,12 +122,11 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         """Calculate all data from Jewish Calendar state."""
         hass = self.hass
 
-        # Get raw states
+        # Get raw states from Jewish Calendar
         issur_melacha = self._get_state(JC_ISSUR_MELACHA)
         erev_shabbat_hag = self._get_state(JC_EREV_SHABBAT_HAG)
         candle_lighting_str = self._get_state(JC_CANDLE_LIGHTING)
         havdalah_str = self._get_state(JC_HAVDALAH)
-        shabbat_candle_str = self._get_state(JC_SHABBAT_CANDLE_LIGHTING)
         shabbat_havdalah_str = self._get_state(JC_SHABBAT_HAVDALAH)
         holiday_name = self._get_state(JC_HOLIDAY)
         hebrew_date = self._get_state(JC_DATE)
@@ -99,17 +142,10 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         # Parse times
         candle_lighting_dt = self._parse_datetime(candle_lighting_str)
         havdalah_dt = self._parse_datetime(havdalah_str)
-        shabbat_candle_dt = self._parse_datetime(shabbat_candle_str)
-        shabbat_havdalah_dt = self._parse_datetime(shabbat_havdalah_str)
 
         # Format times for display (HH:MM)
         candle_lighting_time = self._format_time(candle_lighting_dt)
         havdalah_time = self._format_time(havdalah_dt)
-
-        # Calculate period days
-        period_days = self._calculate_period_days(
-            candle_lighting_dt, havdalah_dt, shabbat_candle_dt, shabbat_havdalah_dt
-        )
 
         # Determine current status
         is_issur = issur_melacha == "on"
@@ -123,29 +159,10 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         else:
             status = "Jol"
 
-        # Check if Shabat/Hag ends today
-        ends_today = False
-        if havdalah_dt:
-            now = dt_util.now()
-            time_until = (havdalah_dt - now).total_seconds() / 3600
-            if 0 < time_until < 6 and shabbat_havdalah_str == havdalah_str:
-                ends_today = True
+        # Calculate period days using hdate
+        period_days = self._calculate_period_days(candle_lighting_dt)
 
-        # Tomorrow issur melacha
-        tomorrow_issur = False
-        if havdalah_dt:
-            tomorrow = (dt_util.now() + timedelta(days=1)).date()
-            tomorrow_issur = havdalah_dt.date() > tomorrow
-
-        # Hebrew date without year
-        hebrew_date_no_year = ""
-        if hebrew_date and hebrew_date not in ("unknown", "unavailable"):
-            hebrew_date_no_year = hebrew_date[:-5] if len(hebrew_date) > 5 else hebrew_date
-
-        # Should show card
-        show_card = is_erev or is_issur
-
-        # Calculate current day number (which day of the period are we in?)
+        # Calculate current day number
         current_day = 0
         current_day_name = ""
         if is_issur and candle_lighting_dt:
@@ -153,8 +170,47 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
             hours_since = (now - candle_lighting_dt).total_seconds() / 3600
             if hours_since >= 0:
                 current_day = min(int(hours_since // 24) + 1, len(period_days))
-                if current_day > 0 and current_day <= len(period_days):
-                    current_day_name = period_days[current_day - 1].get("day_name", "")
+                if 0 < current_day <= len(period_days):
+                    current_day_name = period_days[current_day - 1].get(
+                        "day_name", ""
+                    )
+
+        # Tomorrow issur melacha - check directly with hdate
+        now = dt_util.now()
+        tomorrow = (now + timedelta(days=1)).date()
+        tomorrow_info = _has_issur_melacha(tomorrow, self.diaspora)
+        tomorrow_issur = tomorrow_info["has_issur"]
+
+        # Tonight is entry night?
+        # True if tomorrow has issur melacha (tonight we enter a new day)
+        # False if tomorrow does NOT have issur (tonight the period ends)
+        noche_entrada = False
+        if is_erev and not is_issur:
+            # Erev: tonight we enter the period
+            noche_entrada = True
+        elif is_issur and tomorrow_info["has_issur"]:
+            # During issur and tomorrow also has issur: tonight enters next day
+            noche_entrada = True
+
+        # Is this the last day?
+        ultimo_dia = is_issur and not tomorrow_info["has_issur"]
+
+        # Check if Shabat/Hag ends today
+        ends_today = False
+        if havdalah_dt:
+            time_until = (havdalah_dt - now).total_seconds() / 3600
+            if 0 < time_until < 6 and shabbat_havdalah_str == havdalah_str:
+                ends_today = True
+
+        # Hebrew date without year
+        hebrew_date_no_year = ""
+        if hebrew_date and hebrew_date not in ("unknown", "unavailable"):
+            hebrew_date_no_year = (
+                hebrew_date[:-5] if len(hebrew_date) > 5 else hebrew_date
+            )
+
+        # Should show card
+        show_card = is_erev or is_issur
 
         return {
             "issur_melacha": is_issur,
@@ -173,70 +229,55 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
             "total_days": len(period_days),
             "ends_today": ends_today,
             "tomorrow_issur": tomorrow_issur,
+            "noche_entrada": noche_entrada,
+            "ultimo_dia": ultimo_dia,
             "show_card": show_card,
             "current_day": current_day,
             "current_day_name": current_day_name,
         }
 
     def _calculate_period_days(
-        self,
-        candle_dt: datetime | None,
-        havdalah_dt: datetime | None,
-        shabbat_candle_dt: datetime | None,
-        shabbat_havdalah_dt: datetime | None,
+        self, candle_dt: datetime | None
     ) -> list[dict[str, Any]]:
-        """Calculate how many days of issur melacha are in the upcoming/current period.
+        """Calculate days of issur melacha using hdate.
 
-        Each day represents a Jewish day (sunset to sunset) with:
+        Checks each consecutive date starting from candle lighting to see
+        if it has issur melacha (Shabbat or Yom Tov).
+
+        Each day represents a Jewish day (sunset to sunset):
         - Cena (dinner): the evening meal at the START of the Jewish day
         - Almuerzo (lunch): the midday meal during the Jewish day
         """
-        if not candle_dt or not havdalah_dt:
+        if not candle_dt:
             return self._default_shabbat_day()
 
-        # Calculate hours between candle lighting and havdalah
-        hours_diff = (havdalah_dt - candle_dt).total_seconds() / 3600
-
-        # Determine number of issur days
-        # ~25h = 1 day (regular Shabbat)
-        # ~49h = 2 days (2-day Yom Tov)
-        # ~73h = 3 days (Yom Tov + Shabbat or vice versa)
-        if hours_diff <= 30:
-            num_days = 1
-        elif hours_diff <= 54:
-            num_days = 2
-        else:
-            num_days = min(3, MAX_PERIOD_DAYS)
+        # The first Jewish day starts at candle_dt (sunset on secular date X)
+        # The "morning" of that Jewish day is secular date X+1
+        first_morning = candle_dt.date() + timedelta(days=1)
 
         days = []
-        for i in range(num_days):
-            # Calculate the secular date for this Jewish day
-            # Day 1 starts at candle_dt (sunset), its "morning" is the next day
-            day_start = candle_dt + timedelta(days=i)
-            day_morning = candle_dt + timedelta(days=i + 1)
+        for i in range(MAX_PERIOD_DAYS):
+            morning_date = first_morning + timedelta(days=i)
+            info = _has_issur_melacha(morning_date, self.diaspora)
 
-            # Day of week for the dinner (evening) and lunch (next morning)
-            dinner_weekday = day_start.strftime("%A")
-            lunch_weekday = day_morning.strftime("%A")
+            if not info["has_issur"]:
+                break  # No more consecutive issur melacha days
 
-            # Check if this day is Shabbat (Saturday daytime = Jewish Shabbat)
-            is_shabbat = day_morning.weekday() == 5  # Saturday
+            # Evening (dinner) is the night before the morning
+            evening_date = morning_date - timedelta(days=1)
+            dinner_weekday = evening_date.strftime("%A")
+            lunch_weekday = morning_date.strftime("%A")
 
-            # Determine day name
-            holiday_state = self.hass.states.get(JC_HOLIDAY)
-            holiday_name = ""
-            if holiday_state and holiday_state.state not in ("unknown", "unavailable", ""):
-                holiday_name = holiday_state.state
+            # Build day name
+            is_shabbat = info["is_shabbat"]
+            holiday_name = info["holiday_name"]
 
             if is_shabbat and holiday_name:
                 day_name = f"{holiday_name} - Shabat"
             elif is_shabbat:
                 day_name = "Shabat"
             elif holiday_name:
-                if num_days > 1 and not is_shabbat:
-                    day_name = f"{holiday_name} {'I' * (i + 1) if i < 3 else str(i + 1)}"
-                else:
-                    day_name = holiday_name
+                day_name = holiday_name
             else:
                 day_name = "Shabat"
 
@@ -246,12 +287,12 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
                 "dinner_weekday": dinner_weekday,
                 "lunch_weekday": lunch_weekday,
                 "is_shabbat": is_shabbat,
-                "is_yom_tov": bool(holiday_name) and not is_shabbat,
-                "day_start": day_start.isoformat(),
-                "day_morning": day_morning.isoformat(),
+                "is_yom_tov": info["is_yom_tov"],
+                "day_start": evening_date.isoformat(),
+                "day_morning": morning_date.isoformat(),
             })
 
-        return days
+        return days if days else self._default_shabbat_day()
 
     def _default_shabbat_day(self) -> list[dict[str, Any]]:
         """Return a default single Shabbat day structure."""
@@ -270,7 +311,6 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         """Check if the holiday type represents Yom Tov (issur melacha)."""
         if not holiday_type:
             return False
-        # Exclude memorial days and modern holidays
         return holiday_type not in ("", "MEMORIAL_DAY", "MODERN_HOLIDAY")
 
     def _get_state(self, entity_id: str) -> str:

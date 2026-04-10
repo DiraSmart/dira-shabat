@@ -10,8 +10,10 @@ CONF_DEFAULT_CENA = "default_cena"
 CONF_DEFAULT_ALMUERZO = "default_almuerzo"
 CONF_RESET_DELAY = "reset_delay"
 CONF_LANGUAGE = "language"
+CONF_DIASPORA = "diaspora"
 
 # Defaults
+DEFAULT_DIASPORA = True
 DEFAULT_CENA = True
 DEFAULT_ALMUERZO = True
 DEFAULT_RESET_DELAY = 30

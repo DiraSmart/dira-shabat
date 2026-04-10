@@ -225,21 +225,7 @@ class DiraShabatNocheEntradaSensor(CoordinatorEntity, BinarySensorEntity):
         """Return true if tonight starts a new day of issur."""
         if not self.coordinator.data:
             return False
-
-        is_erev = self.coordinator.data.get("erev_shabbat_hag", False)
-        is_issur = self.coordinator.data.get("issur_melacha", False)
-        current_day = self.coordinator.data.get("current_day", 0)
-        total_days = self.coordinator.data.get("total_days", 1)
-
-        # Erev = tonight we enter the period
-        if is_erev and not is_issur:
-            return True
-
-        # During issur: if we're not on the last day, tonight enters the next day
-        if is_issur and current_day > 0 and current_day < total_days:
-            return True
-
-        return False
+        return self.coordinator.data.get("noche_entrada", False)
 
     @property
     def extra_state_attributes(self) -> dict:
@@ -287,9 +273,4 @@ class DiraShabatUltimoDiaSensor(CoordinatorEntity, BinarySensorEntity):
         """Return true if this is the last day of the period."""
         if not self.coordinator.data:
             return False
-
-        is_issur = self.coordinator.data.get("issur_melacha", False)
-        current_day = self.coordinator.data.get("current_day", 0)
-        total_days = self.coordinator.data.get("total_days", 1)
-
-        return is_issur and current_day > 0 and current_day == total_days
+        return self.coordinator.data.get("ultimo_dia", False)

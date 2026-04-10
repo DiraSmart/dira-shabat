@@ -13,10 +13,12 @@ from homeassistant.data_entry_flow import FlowResult
 from .const import (
     CONF_DEFAULT_ALMUERZO,
     CONF_DEFAULT_CENA,
+    CONF_DIASPORA,
     CONF_LANGUAGE,
     CONF_RESET_DELAY,
     DEFAULT_ALMUERZO,
     DEFAULT_CENA,
+    DEFAULT_DIASPORA,
     DEFAULT_LANGUAGE,
     DEFAULT_RESET_DELAY,
     DOMAIN,
@@ -53,6 +55,7 @@ class DiraShabatConfigFlow(ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_LANGUAGE, default=DEFAULT_LANGUAGE): vol.In(
                         {"es": "Español", "en": "English"}
                     ),
+                    vol.Required(CONF_DIASPORA, default=DEFAULT_DIASPORA): bool,
                     vol.Required(CONF_DEFAULT_CENA, default=DEFAULT_CENA): bool,
                     vol.Required(
                         CONF_DEFAULT_ALMUERZO, default=DEFAULT_ALMUERZO
@@ -101,6 +104,10 @@ class DiraShabatOptionsFlow(OptionsFlow):
                         CONF_LANGUAGE,
                         default=current.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
                     ): vol.In({"es": "Español", "en": "English"}),
+                    vol.Required(
+                        CONF_DIASPORA,
+                        default=current.get(CONF_DIASPORA, DEFAULT_DIASPORA),
+                    ): bool,
                     vol.Required(
                         CONF_DEFAULT_CENA,
                         default=current.get(CONF_DEFAULT_CENA, DEFAULT_CENA),

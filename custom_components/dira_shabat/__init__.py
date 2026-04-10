@@ -14,9 +14,11 @@ from homeassistant.components.http import StaticPathConfig
 from .const import (
     CONF_DEFAULT_ALMUERZO,
     CONF_DEFAULT_CENA,
+    CONF_DIASPORA,
     CONF_RESET_DELAY,
     DEFAULT_ALMUERZO,
     DEFAULT_CENA,
+    DEFAULT_DIASPORA,
     DEFAULT_RESET_DELAY,
     DOMAIN,
     JC_ISSUR_MELACHA,
@@ -48,7 +50,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         add_extra_js_url(hass, card_url)
         hass.data[DOMAIN]["frontend_registered"] = True
 
-    coordinator = DiraShabatCoordinator(hass, entry.entry_id)
+    diaspora = entry.data.get(CONF_DIASPORA, DEFAULT_DIASPORA)
+    coordinator = DiraShabatCoordinator(hass, entry.entry_id, diaspora=diaspora)
 
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
