@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Dira Shabat Setup",
+        "description": "Configure Shabbat and Holiday management. Requires the Jewish Calendar integration to be installed.",
+        "data": {
+          "language": "Language",
+          "default_cena": "Default Dinner (ON/OFF after reset)",
+          "default_almuerzo": "Default Lunch (ON/OFF after reset)",
+          "reset_delay": "Reset delay (seconds after issur melacha ends)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Dira Shabat is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Dira Shabat Options",
+        "data": {
+          "language": "Language",
+          "default_cena": "Default Dinner (ON/OFF after reset)",
+          "default_almuerzo": "Default Lunch (ON/OFF after reset)",
+          "reset_delay": "Reset delay (seconds after issur melacha ends)"
+        }
+      }
+    }
+  }
+}
