@@ -6,6 +6,7 @@ import logging
 import shutil
 from pathlib import Path
 
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState, HomeAssistant, callback
@@ -31,6 +32,8 @@ _LOGGER = logging.getLogger(__name__)
 
 CARD_FILENAME = "dira-shabat-card.js"
 CARD_URL = f"/local/{CARD_FILENAME}"
+# Fallback URL served directly from the integration folder
+CARD_URL_FALLBACK = f"/{DOMAIN}_files/{CARD_FILENAME}"
 
 
 async def _async_install_card(hass: HomeAssistant) -> None:
@@ -38,17 +41,42 @@ async def _async_install_card(hass: HomeAssistant) -> None:
     src = Path(__file__).parent / "www" / CARD_FILENAME
     dst = Path(hass.config.path("www", CARD_FILENAME))
 
-    def _copy_file() -> None:
+    _LOGGER.info("Card source: %s (exists=%s)", src, src.exists())
+    _LOGGER.info("Card destination: %s", dst)
+
+    # Always register a fallback static path serving directly from the integration
+    try:
+        await hass.http.async_register_static_paths([
+            StaticPathConfig(CARD_URL_FALLBACK, str(src), False)
+        ])
+        _LOGGER.info("Registered fallback static path at %s", CARD_URL_FALLBACK)
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Could not register static path: %s", err)
+
+    def _copy_file() -> bool:
         dst.parent.mkdir(parents=True, exist_ok=True)
-        # Copy if destination missing or source is newer
         if not dst.exists() or src.stat().st_mtime > dst.stat().st_mtime:
             shutil.copy2(src, dst)
+            return True
+        return False
 
+    copied = False
     try:
-        await hass.async_add_executor_job(_copy_file)
-        _LOGGER.info("Installed Lovelace card to %s", dst)
+        copied = await hass.async_add_executor_job(_copy_file)
+        _LOGGER.info(
+            "Card %s to %s (size=%s)",
+            "copied" if copied else "already up-to-date at",
+            dst,
+            dst.stat().st_size if dst.exists() else "N/A",
+        )
     except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Could not copy card to /config/www/: %s", err)
+        _LOGGER.warning("Could not copy card to /config/www/: %s - using fallback URL", err)
+        # Use fallback URL if copy failed
+        try:
+            from homeassistant.components.frontend import add_extra_js_url
+            add_extra_js_url(hass, CARD_URL_FALLBACK)
+        except Exception:  # noqa: BLE001
+            pass
         return
 
     # Register as Lovelace resource (storage mode only)
