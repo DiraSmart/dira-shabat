@@ -199,11 +199,10 @@ class DiraShabatCard extends HTMLElement {
         ? totalDays.attributes.period_days
         : [];
 
-    // Build meal toggles HTML
-    let mealsHTML = "";
+    // Build a flat list of all meals (all days, all meals in one row)
+    const mealItems = [];
     for (let day = 1; day <= numDays; day++) {
       const dayInfo = periodDays[day - 1] || {};
-      const dayName = dayInfo.day_name || (lang === "es" ? "Shabat" : "Shabbat");
       const dinnerWeekday = dayInfo.dinner_weekday || "";
       const lunchWeekday = dayInfo.lunch_weekday || "";
       const dinnerDay = t.days_of_week[dinnerWeekday] || dinnerWeekday;
@@ -213,39 +212,34 @@ class DiraShabatCard extends HTMLElement {
       const almuerzoEntity = `switch.${prefix}_dia_${day}_almuerzo`;
       const cenaState = this._getState(cenaEntity);
       const almuerzoState = this._getState(almuerzoEntity);
-      const cenaOn = cenaState && cenaState.state === "on";
-      const almuerzoOn = almuerzoState && almuerzoState.state === "on";
 
-      const isMultiDay = numDays > 1;
-
-      mealsHTML += `
-        <div class="day-section ${isMultiDay ? "multi-day" : ""}">
-          ${
-            isMultiDay
-              ? `<div class="day-header">
-                  <span class="day-name">${dayName}</span>
-                </div>`
-              : ""
-          }
-          <div class="meals-row">
-            <div class="meal-item">
-              <div class="meal-label">${t.dinner}${dinnerDay ? ` (${dinnerDay})` : ""}</div>
-              <label class="toggle" data-entity="${cenaEntity}">
-                <input type="checkbox" ${cenaOn ? "checked" : ""} />
-                <span class="slider"></span>
-              </label>
-            </div>
-            <div class="meal-item">
-              <div class="meal-label">${t.lunch}${lunchDay ? ` (${lunchDay})` : ""}</div>
-              <label class="toggle" data-entity="${almuerzoEntity}">
-                <input type="checkbox" ${almuerzoOn ? "checked" : ""} />
-                <span class="slider"></span>
-              </label>
-            </div>
-          </div>
-        </div>
-      `;
+      mealItems.push({
+        label: t.dinner,
+        day: dinnerDay,
+        entity: cenaEntity,
+        on: cenaState && cenaState.state === "on",
+      });
+      mealItems.push({
+        label: t.lunch,
+        day: lunchDay,
+        entity: almuerzoEntity,
+        on: almuerzoState && almuerzoState.state === "on",
+      });
     }
+
+    const mealsHTML = mealItems
+      .map(
+        (m) => `
+        <div class="meal-item">
+          <div class="meal-label">${m.label}${m.day ? ` (${m.day})` : ""}</div>
+          <label class="toggle" data-entity="${m.entity}">
+            <input type="checkbox" ${m.on ? "checked" : ""} />
+            <span class="slider"></span>
+          </label>
+        </div>
+      `,
+      )
+      .join("");
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -268,42 +262,41 @@ class DiraShabatCard extends HTMLElement {
           display: flex;
           justify-content: space-around;
           align-items: center;
-          padding: 16px 24px 12px;
+          padding: 10px 16px 8px;
           border-bottom: 1px solid var(--divider-color);
         }
 
         .time-block {
           display: flex;
-          flex-direction: column;
+          flex-direction: row;
           align-items: center;
           gap: 8px;
         }
 
         .time-label {
-          font-size: 13px;
+          font-size: 12px;
           color: var(--text-secondary);
           font-weight: 500;
-          letter-spacing: 0.3px;
         }
 
         .time-icon {
-          font-size: 28px;
+          font-size: 18px;
           color: var(--accent-color);
           line-height: 1;
+          --mdc-icon-size: 18px;
         }
 
         .time-value {
-          font-size: 24px;
+          font-size: 17px;
           font-weight: 600;
           color: var(--text-primary);
-          letter-spacing: 0.5px;
         }
 
         .mode-section {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 14px 20px;
+          padding: 10px 16px;
           cursor: pointer;
           user-select: none;
           -webkit-user-select: none;
@@ -342,21 +335,22 @@ class DiraShabatCard extends HTMLElement {
         .mode-left {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
         }
 
         .mode-icon {
-          font-size: 22px;
+          font-size: 18px;
           color: var(--accent-color);
+          --mdc-icon-size: 18px;
         }
 
         .mode-label {
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 500;
         }
 
         .mode-status {
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 600;
           color: var(--accent-color);
         }
@@ -366,80 +360,59 @@ class DiraShabatCard extends HTMLElement {
         }
 
         .meals-container {
-          padding: 14px 20px 16px;
+          padding: 10px 16px 12px;
           border-top: 1px solid var(--divider-color);
         }
 
         .meals-header {
           display: flex;
           align-items: center;
-          gap: 12px;
-          margin-bottom: 12px;
+          gap: 10px;
+          margin-bottom: 10px;
         }
 
         .meals-icon {
-          font-size: 22px;
+          font-size: 18px;
           color: var(--accent-color);
+          --mdc-icon-size: 18px;
         }
 
         .meals-title {
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 500;
         }
 
-        .day-section {
-          padding: 4px 0;
-        }
-
-        .day-section.multi-day {
-          padding: 8px 0;
-          border-bottom: 1px solid var(--divider-color);
-        }
-
-        .day-section.multi-day:last-child {
-          border-bottom: none;
-          padding-bottom: 0;
-        }
-
-        .day-header {
-          margin-bottom: 8px;
-        }
-
-        .day-name {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--accent-color);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
         .meals-row {
-          display: flex;
-          justify-content: space-around;
-          gap: 16px;
+          display: grid;
+          grid-template-columns: repeat(var(--meal-count, 2), 1fr);
+          gap: 8px;
         }
 
         .meal-item {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 8px;
-          flex: 1;
+          gap: 6px;
+          min-width: 0;
         }
 
         .meal-label {
-          font-size: 12px;
+          font-size: 11px;
           color: var(--text-secondary);
           font-weight: 500;
           text-align: center;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 100%;
         }
 
         /* Toggle Switch */
         .toggle {
           position: relative;
           display: inline-block;
-          width: 48px;
-          height: 26px;
+          width: 40px;
+          height: 22px;
           cursor: pointer;
         }
 
@@ -456,15 +429,15 @@ class DiraShabatCard extends HTMLElement {
           right: 0;
           bottom: 0;
           background-color: var(--toggle-off-bg);
-          border-radius: 26px;
+          border-radius: 22px;
           transition: background-color 0.3s ease;
         }
 
         .slider::before {
           content: "";
           position: absolute;
-          height: 20px;
-          width: 20px;
+          height: 16px;
+          width: 16px;
           left: 3px;
           bottom: 3px;
           background-color: white;
@@ -477,7 +450,7 @@ class DiraShabatCard extends HTMLElement {
         }
 
         .toggle input:checked + .slider::before {
-          transform: translateX(22px);
+          transform: translateX(18px);
         }
       </style>
 
@@ -520,7 +493,9 @@ class DiraShabatCard extends HTMLElement {
             </span>
             <span class="meals-title">${t.meals}</span>
           </div>
-          ${mealsHTML}
+          <div class="meals-row" style="--meal-count: ${mealItems.length};">
+            ${mealsHTML}
+          </div>
         </div>
         ` : ""}
       </ha-card>
