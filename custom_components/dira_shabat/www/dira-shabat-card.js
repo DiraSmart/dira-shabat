@@ -602,16 +602,22 @@ class DiraShabatCardEditor extends HTMLElement {
   }
 }
 
-// Register the card
-customElements.define("dira-shabat-card", DiraShabatCard);
-customElements.define("dira-shabat-card-editor", DiraShabatCardEditor);
+// Register the card (guarded against double-loading)
+if (!customElements.get("dira-shabat-card")) {
+  customElements.define("dira-shabat-card", DiraShabatCard);
+}
+if (!customElements.get("dira-shabat-card-editor")) {
+  customElements.define("dira-shabat-card-editor", DiraShabatCardEditor);
+}
 
-// Register with Lovelace
+// Register with Lovelace (guarded against double-loading)
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: "dira-shabat-card",
-  name: "Dira Shabat",
-  description: "Manage Shabbat and Jewish Holiday modes with meal toggles",
-  preview: true,
-  documentationURL: "https://github.com/jbran/dira-shabat",
-});
+if (!window.customCards.some((c) => c.type === "dira-shabat-card")) {
+  window.customCards.push({
+    type: "dira-shabat-card",
+    name: "Dira Shabat",
+    description: "Manage Shabbat and Jewish Holiday modes with meal toggles",
+    preview: true,
+    documentationURL: "https://github.com/jbran/dira-shabat",
+  });
+}
