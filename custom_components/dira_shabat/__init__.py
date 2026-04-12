@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import shutil
 from pathlib import Path
@@ -31,64 +32,60 @@ from .coordinator import DiraShabatCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 CARD_FILENAME = "dira-shabat-card.js"
-CARD_URL = f"/local/{CARD_FILENAME}"
-# Fallback URL served directly from the integration folder
+CARD_URL_BASE = f"/local/{CARD_FILENAME}"
 CARD_URL_FALLBACK = f"/{DOMAIN}_files/{CARD_FILENAME}"
 
 
+def _get_version() -> str:
+    """Read version from manifest.json."""
+    try:
+        manifest_path = Path(__file__).parent / "manifest.json"
+        return json.loads(manifest_path.read_text()).get("version", "0")
+    except Exception:  # noqa: BLE001
+        return "0"
+
+
 async def _async_install_card(hass: HomeAssistant) -> None:
-    """Copy card JS to /config/www/ and register as Lovelace resource."""
+    """Copy card JS to /config/www/ and register as Lovelace resource (with version cache-busting)."""
+    version = _get_version()
+    card_url = f"{CARD_URL_BASE}?v={version}"
     src = Path(__file__).parent / "www" / CARD_FILENAME
     dst = Path(hass.config.path("www", CARD_FILENAME))
 
-    _LOGGER.info("Card source: %s (exists=%s)", src, src.exists())
-    _LOGGER.info("Card destination: %s", dst)
-
-    # Always register a fallback static path serving directly from the integration
     try:
         await hass.http.async_register_static_paths([
             StaticPathConfig(CARD_URL_FALLBACK, str(src), False)
         ])
-        _LOGGER.info("Registered fallback static path at %s", CARD_URL_FALLBACK)
     except Exception as err:  # noqa: BLE001
         _LOGGER.warning("Could not register static path: %s", err)
 
-    def _copy_file() -> bool:
+    def _copy_file() -> str:
         dst.parent.mkdir(parents=True, exist_ok=True)
-        if not dst.exists() or src.stat().st_mtime > dst.stat().st_mtime:
-            shutil.copy2(src, dst)
-            return True
-        return False
+        # Always overwrite - HACS may preserve mtimes, so compare size+content instead
+        if dst.exists() and dst.read_bytes() == src.read_bytes():
+            return "unchanged"
+        shutil.copy2(src, dst)
+        return "copied"
 
-    copied = False
     try:
-        copied = await hass.async_add_executor_job(_copy_file)
-        _LOGGER.info(
-            "Card %s to %s (size=%s)",
-            "copied" if copied else "already up-to-date at",
-            dst,
-            dst.stat().st_size if dst.exists() else "N/A",
-        )
+        result = await hass.async_add_executor_job(_copy_file)
+        _LOGGER.info("Card %s at %s (v%s)", result, dst, version)
     except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Could not copy card to /config/www/: %s - using fallback URL", err)
-        # Use fallback URL if copy failed
+        _LOGGER.warning("Could not copy card: %s - using fallback URL", err)
         try:
             from homeassistant.components.frontend import add_extra_js_url
-            add_extra_js_url(hass, CARD_URL_FALLBACK)
+            add_extra_js_url(hass, f"{CARD_URL_FALLBACK}?v={version}")
         except Exception:  # noqa: BLE001
             pass
         return
 
-    # Register as Lovelace resource (storage mode only)
     try:
-        from homeassistant.components.lovelace import LovelaceData  # type: ignore
         lovelace_data = hass.data.get("lovelace")
         if lovelace_data is None:
             return
         resources = getattr(lovelace_data, "resources", None)
-        if resources is None:
-            # Some HA versions store it as dict
-            resources = lovelace_data.get("resources") if isinstance(lovelace_data, dict) else None
+        if resources is None and isinstance(lovelace_data, dict):
+            resources = lovelace_data.get("resources")
         if resources is None:
             return
 
@@ -96,16 +93,21 @@ async def _async_install_card(hass: HomeAssistant) -> None:
             await resources.async_load()
 
         items = list(resources.async_items()) if hasattr(resources, "async_items") else []
-        if any(r.get("url", "").split("?")[0] == CARD_URL for r in items):
-            return  # Already registered
+        existing = next(
+            (r for r in items if r.get("url", "").split("?")[0] == CARD_URL_BASE),
+            None,
+        )
 
-        if hasattr(resources, "async_create_item"):
-            await resources.async_create_item(
-                {"res_type": "module", "url": CARD_URL}
+        if existing is None:
+            if hasattr(resources, "async_create_item"):
+                await resources.async_create_item({"res_type": "module", "url": card_url})
+                _LOGGER.info("Registered Lovelace resource %s", card_url)
+        elif existing.get("url") != card_url and hasattr(resources, "async_update_item"):
+            await resources.async_update_item(
+                existing["id"], {"res_type": "module", "url": card_url}
             )
-            _LOGGER.info("Registered Lovelace resource %s", CARD_URL)
+            _LOGGER.info("Updated Lovelace resource URL to %s", card_url)
     except Exception as err:  # noqa: BLE001
-        # Lovelace in YAML mode or API changed - fall back to add_extra_js_url
         _LOGGER.debug("Could not register Lovelace resource: %s", err)
 
     # Always inject via frontend as a safety net
