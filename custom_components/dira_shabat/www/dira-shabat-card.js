@@ -21,154 +21,206 @@ const CARD_CSS = `
   :host {
     --text-primary: var(--primary-text-color);
     --text-secondary: var(--secondary-text-color);
-    --accent-color: var(--primary-color);
-    --toggle-off-bg: var(--switch-unchecked-track-color, rgba(128,128,128,0.3));
+    --accent: var(--primary-color);
+    --accent-soft: color-mix(in srgb, var(--primary-color) 20%, transparent);
+    --accent-softer: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    --chip-bg: var(--ha-card-background, var(--card-background-color));
+    --chip-border: var(--divider-color);
   }
   ha-card {
     color: var(--text-primary);
     font-family: var(--ha-card-font-family, inherit);
     overflow: hidden;
+    padding: 14px;
   }
-  .card-icon {
-    font-size: 18px;
-    color: var(--accent-color);
-    line-height: 1;
-    --mdc-icon-size: 18px;
-  }
-  .times-section {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 10px 16px 8px;
-    border-bottom: 1px solid var(--divider-color);
-  }
-  .time-block {
+
+  /* Icon badge — rounded square with tinted background */
+  .icon-badge {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    --mdc-icon-size: 20px;
+  }
+  .icon-badge.sm {
+    width: 28px;
+    height: 28px;
+    --mdc-icon-size: 16px;
+  }
+
+  /* Top row: times side-by-side */
+  .times-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .time-tile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: var(--accent-softer);
+  }
+  .time-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
   }
   .time-label {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-secondary);
     font-weight: 500;
+    line-height: 1.2;
   }
   .time-value {
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 600;
+    letter-spacing: 0.2px;
+    line-height: 1.2;
   }
-  .mode-section {
+
+  /* Mode row: pressable with progress overlay */
+  .mode-row {
+    margin-top: 10px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 10px 16px;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--accent-softer);
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
     position: relative;
     overflow: hidden;
-    transition: background 0.2s ease;
   }
-  .mode-section::before {
+  .mode-row::before {
     content: "";
     position: absolute;
     inset: 0 auto 0 0;
     width: 0;
-    background: var(--accent-color);
-    opacity: 0.15;
+    background: var(--accent);
+    opacity: 0.25;
     transition: width 0s;
+    pointer-events: none;
   }
-  .mode-section.holding::before {
+  .mode-row.holding::before {
     width: 100%;
     transition: width 500ms linear;
   }
-  .mode-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  .mode-text {
+    flex: 1;
+    min-width: 0;
   }
   .mode-label {
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .mode-hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.2;
+    margin-top: 2px;
   }
   .mode-status {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--accent-color);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--text-primary-color, #fff);
+    text-transform: uppercase;
   }
   .mode-status.off {
+    background: var(--toggle-off-bg, rgba(128,128,128,0.25));
     color: var(--text-secondary);
   }
-  .meals-container {
-    padding: 10px 16px 12px;
-    border-top: 1px solid var(--divider-color);
-  }
-  .meals-header {
+
+  /* Section header (for Meals) */
+  .section-header {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 10px;
+    margin-top: 14px;
+    margin-bottom: 8px;
   }
-  .meals-title {
-    font-size: 14px;
-    font-weight: 500;
+  .section-header::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--chip-border);
   }
+  .section-icon {
+    color: var(--accent);
+    --mdc-icon-size: 18px;
+    line-height: 1;
+  }
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  /* Meals as chips */
   .meals-row {
     display: grid;
     grid-template-columns: repeat(var(--meal-count, 2), 1fr);
     gap: 8px;
   }
-  .meal-item {
+  .meal-chip {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: var(--accent-softer);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: background 0.2s ease;
     min-width: 0;
   }
-  .meal-label {
-    font-size: 11px;
-    color: var(--text-secondary);
-    font-weight: 500;
-    text-align: center;
+  .meal-chip.on {
+    background: var(--accent-soft);
+  }
+  .meal-chip-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .meal-chip-label {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 100%;
   }
-  .toggle {
-    position: relative;
-    display: inline-block;
-    width: 40px;
-    height: 22px;
-    cursor: pointer;
+  .meal-chip-day {
+    font-size: 10px;
+    color: var(--text-secondary);
+    line-height: 1.2;
   }
-  .toggle input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  .slider {
-    position: absolute;
-    inset: 0;
-    background-color: var(--toggle-off-bg);
-    border-radius: 22px;
-    transition: background-color 0.3s ease;
-  }
-  .slider::before {
-    content: "";
-    position: absolute;
-    height: 16px;
-    width: 16px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
+  .meal-dot {
+    flex: 0 0 auto;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
-    transition: transform 0.3s ease;
+    background: var(--toggle-off-bg, rgba(128,128,128,0.35));
+    transition: background 0.2s ease, transform 0.2s ease;
   }
-  .toggle input:checked + .slider {
-    background-color: var(--accent-color);
-  }
-  .toggle input:checked + .slider::before {
-    transform: translateX(18px);
+  .meal-chip.on .meal-dot {
+    background: var(--accent);
+    transform: scale(1.15);
   }
 `;
 
@@ -409,12 +461,12 @@ class DiraShabatCard extends HTMLElement {
     const mealsHTML = mealItems
       .map(
         (m) => `
-        <div class="meal-item">
-          <div class="meal-label">${m.label}${m.day ? ` (${m.day})` : ""}</div>
-          <label class="toggle" data-entity="${m.entity}">
-            <input type="checkbox" ${m.on ? "checked" : ""} />
-            <span class="slider"></span>
-          </label>
+        <div class="meal-chip ${m.on ? "on" : ""}" data-entity="${m.entity}">
+          <div class="meal-chip-text">
+            <span class="meal-chip-label">${m.label}</span>
+            ${m.day ? `<span class="meal-chip-day">${m.day}</span>` : ""}
+          </div>
+          <span class="meal-dot"></span>
         </div>
       `,
       )
@@ -422,36 +474,39 @@ class DiraShabatCard extends HTMLElement {
 
     this.shadowRoot.innerHTML = `
       <ha-card>
-        <div class="times-section">
-          <div class="time-block">
-            <span class="time-label">${t.candle_lighting}</span>
-            <span class="card-icon"><ha-icon icon="mdi:candle"></ha-icon></span>
-            <span class="time-value">${candleTime}</span>
+        <div class="times-row">
+          <div class="time-tile">
+            <span class="icon-badge sm"><ha-icon icon="mdi:candle"></ha-icon></span>
+            <div class="time-text">
+              <span class="time-label">${t.candle_lighting}</span>
+              <span class="time-value">${candleTime}</span>
+            </div>
           </div>
-          <div class="time-block">
-            <span class="time-label">${t.ends}</span>
-            <span class="card-icon"><ha-icon icon="mdi:moon-waning-crescent"></ha-icon></span>
-            <span class="time-value">${havdalahTime}</span>
+          <div class="time-tile">
+            <span class="icon-badge sm"><ha-icon icon="mdi:moon-waning-crescent"></ha-icon></span>
+            <div class="time-text">
+              <span class="time-label">${t.ends}</span>
+              <span class="time-value">${havdalahTime}</span>
+            </div>
           </div>
         </div>
 
-        <div class="mode-section" id="mode-toggle" title="${t.hold_hint}">
-          <div class="mode-left">
-            <span class="card-icon"><ha-icon icon="mdi:candle"></ha-icon></span>
-            <span class="mode-label">${t.shabbat_mode}</span>
+        <div class="mode-row" id="mode-toggle" title="${t.hold_hint}">
+          <span class="icon-badge"><ha-icon icon="mdi:candle"></ha-icon></span>
+          <div class="mode-text">
+            <div class="mode-label">${t.shabbat_mode}</div>
+            <div class="mode-hint">${t.hold_hint}</div>
           </div>
           <span class="mode-status ${modoOn ? "" : "off"}">${modoOn ? t.on : t.off}</span>
         </div>
 
         ${modoOn ? `
-        <div class="meals-container">
-          <div class="meals-header">
-            <span class="card-icon"><ha-icon icon="mdi:silverware-fork-knife"></ha-icon></span>
-            <span class="meals-title">${t.meals}</span>
-          </div>
-          <div class="meals-row" style="--meal-count: ${mealItems.length};">
-            ${mealsHTML}
-          </div>
+        <div class="section-header">
+          <span class="section-icon"><ha-icon icon="mdi:silverware-fork-knife"></ha-icon></span>
+          <span class="section-title">${t.meals}</span>
+        </div>
+        <div class="meals-row" style="--meal-count: ${mealItems.length};">
+          ${mealsHTML}
         </div>
         ` : ""}
       </ha-card>
@@ -475,14 +530,10 @@ class DiraShabatCard extends HTMLElement {
       });
     }
 
-    const toggles = this.shadowRoot.querySelectorAll(".toggle");
-    toggles.forEach((toggle) => {
-      toggle.addEventListener("click", (e) => {
-        e.preventDefault();
-        const entityId = toggle.dataset.entity;
-        if (entityId) {
-          this._toggleEntity(entityId);
-        }
+    this.shadowRoot.querySelectorAll(".meal-chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const entityId = chip.dataset.entity;
+        if (entityId) this._toggleEntity(entityId);
       });
     });
   }
