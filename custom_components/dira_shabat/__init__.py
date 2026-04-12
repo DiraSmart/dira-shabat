@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import shutil
 from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState, HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
-from homeassistant.components.http import StaticPathConfig
 
 from .const import (
     CONF_DEFAULT_ALMUERZO,
@@ -29,26 +29,73 @@ from .coordinator import DiraShabatCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+CARD_FILENAME = "dira-shabat-card.js"
+CARD_URL = f"/local/{CARD_FILENAME}"
+
+
+async def _async_install_card(hass: HomeAssistant) -> None:
+    """Copy card JS to /config/www/ and register as Lovelace resource."""
+    src = Path(__file__).parent / "www" / CARD_FILENAME
+    dst = Path(hass.config.path("www", CARD_FILENAME))
+
+    def _copy_file() -> None:
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        # Copy if destination missing or source is newer
+        if not dst.exists() or src.stat().st_mtime > dst.stat().st_mtime:
+            shutil.copy2(src, dst)
+
+    try:
+        await hass.async_add_executor_job(_copy_file)
+        _LOGGER.info("Installed Lovelace card to %s", dst)
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Could not copy card to /config/www/: %s", err)
+        return
+
+    # Register as Lovelace resource (storage mode only)
+    try:
+        from homeassistant.components.lovelace import LovelaceData  # type: ignore
+        lovelace_data = hass.data.get("lovelace")
+        if lovelace_data is None:
+            return
+        resources = getattr(lovelace_data, "resources", None)
+        if resources is None:
+            # Some HA versions store it as dict
+            resources = lovelace_data.get("resources") if isinstance(lovelace_data, dict) else None
+        if resources is None:
+            return
+
+        if hasattr(resources, "async_load") and not getattr(resources, "loaded", True):
+            await resources.async_load()
+
+        items = list(resources.async_items()) if hasattr(resources, "async_items") else []
+        if any(r.get("url", "").split("?")[0] == CARD_URL for r in items):
+            return  # Already registered
+
+        if hasattr(resources, "async_create_item"):
+            await resources.async_create_item(
+                {"res_type": "module", "url": CARD_URL}
+            )
+            _LOGGER.info("Registered Lovelace resource %s", CARD_URL)
+    except Exception as err:  # noqa: BLE001
+        # Lovelace in YAML mode or API changed - fall back to add_extra_js_url
+        _LOGGER.debug("Could not register Lovelace resource: %s", err)
+
+    # Always inject via frontend as a safety net
+    try:
+        from homeassistant.components.frontend import add_extra_js_url
+        add_extra_js_url(hass, CARD_URL)
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug("Could not add extra JS URL: %s", err)
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Dira Shabat from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    # Register the Lovelace card JS
-    card_url = f"/{DOMAIN}/dira-shabat-card.js"
-    should_register = not hass.data[DOMAIN].get("frontend_registered")
-    if should_register:
-        await hass.http.async_register_static_paths([
-            StaticPathConfig(
-                card_url,
-                str(Path(__file__).parent / "www" / "dira-shabat-card.js"),
-                False,
-            )
-        ])
-        from homeassistant.components.frontend import add_extra_js_url
-        add_extra_js_url(hass, card_url)
+    # Install the Lovelace card automatically
+    if not hass.data[DOMAIN].get("frontend_registered"):
+        await _async_install_card(hass)
         hass.data[DOMAIN]["frontend_registered"] = True
-        _LOGGER.info("Registered Lovelace card at %s", card_url)
 
     diaspora = entry.data.get(CONF_DIASPORA, DEFAULT_DIASPORA)
     coordinator = DiraShabatCoordinator(hass, entry.entry_id, diaspora=diaspora)
