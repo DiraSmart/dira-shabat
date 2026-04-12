@@ -268,10 +268,8 @@ class DiraShabatCard extends HTMLElement {
           display: flex;
           justify-content: space-around;
           align-items: center;
-          padding: 20px 24px;
-          background: var(--section-bg);
-          border-radius: 12px;
-          margin: 12px;
+          padding: 16px 24px 12px;
+          border-bottom: 1px solid var(--divider-color);
         }
 
         .time-block {
@@ -306,16 +304,17 @@ class DiraShabatCard extends HTMLElement {
           align-items: center;
           justify-content: space-between;
           padding: 14px 20px;
-          margin: 0 12px;
-          background: var(--section-bg);
-          border-radius: 12px;
-          margin-bottom: 8px;
           cursor: pointer;
           user-select: none;
           -webkit-user-select: none;
           position: relative;
           overflow: hidden;
           transition: background 0.2s ease;
+        }
+
+        .meals-container + .mode-section,
+        .mode-section + .meals-container {
+          border-top: 1px solid var(--divider-color);
         }
 
         .mode-section::before {
@@ -367,10 +366,8 @@ class DiraShabatCard extends HTMLElement {
         }
 
         .meals-container {
-          margin: 0 12px 12px;
-          background: var(--section-bg);
-          border-radius: 12px;
-          padding: 14px 20px;
+          padding: 14px 20px 16px;
+          border-top: 1px solid var(--divider-color);
         }
 
         .meals-header {
