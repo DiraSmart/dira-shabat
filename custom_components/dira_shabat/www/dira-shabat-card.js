@@ -9,6 +9,179 @@ console.info(
   "color: #6a3de8; background: #ede7f6; font-weight: 700; padding: 2px 8px; border-radius: 0 4px 4px 0;"
 );
 
+const AUTO_ENTITIES = {
+  show_times_entity: (p) => `binary_sensor.${p}_mostrar_horarios`,
+  modo_shabat_entity: (p) => `switch.${p}_modo_shabat`,
+  candle_lighting_entity: (p) => `sensor.${p}_encendido_velas`,
+  havdalah_entity: (p) => `sensor.${p}_finaliza`,
+  total_days_entity: (p) => `sensor.${p}_dias_totales`,
+};
+
+const CARD_CSS = `
+  :host {
+    --text-primary: var(--primary-text-color);
+    --text-secondary: var(--secondary-text-color);
+    --accent-color: var(--primary-color);
+    --toggle-off-bg: var(--switch-unchecked-track-color, rgba(128,128,128,0.3));
+  }
+  ha-card {
+    color: var(--text-primary);
+    font-family: var(--ha-card-font-family, inherit);
+    overflow: hidden;
+  }
+  .card-icon {
+    font-size: 18px;
+    color: var(--accent-color);
+    line-height: 1;
+    --mdc-icon-size: 18px;
+  }
+  .times-section {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px 16px 8px;
+    border-bottom: 1px solid var(--divider-color);
+  }
+  .time-block {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .time-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .time-value {
+    font-size: 17px;
+    font-weight: 600;
+  }
+  .mode-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.2s ease;
+  }
+  .mode-section::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0;
+    background: var(--accent-color);
+    opacity: 0.15;
+    transition: width 0s;
+  }
+  .mode-section.holding::before {
+    width: 100%;
+    transition: width 500ms linear;
+  }
+  .mode-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .mode-label {
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .mode-status {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-color);
+  }
+  .mode-status.off {
+    color: var(--text-secondary);
+  }
+  .meals-container {
+    padding: 10px 16px 12px;
+    border-top: 1px solid var(--divider-color);
+  }
+  .meals-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .meals-title {
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .meals-row {
+    display: grid;
+    grid-template-columns: repeat(var(--meal-count, 2), 1fr);
+    gap: 8px;
+  }
+  .meal-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .meal-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .toggle {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+    cursor: pointer;
+  }
+  .toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .slider {
+    position: absolute;
+    inset: 0;
+    background-color: var(--toggle-off-bg);
+    border-radius: 22px;
+    transition: background-color 0.3s ease;
+  }
+  .slider::before {
+    content: "";
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+  }
+  .toggle input:checked + .slider {
+    background-color: var(--accent-color);
+  }
+  .toggle input:checked + .slider::before {
+    transform: translateX(18px);
+  }
+`;
+
+let SHARED_STYLESHEET = null;
+const getStyleSheet = () => {
+  if (SHARED_STYLESHEET) return SHARED_STYLESHEET;
+  if (typeof CSSStyleSheet !== "undefined" && "replaceSync" in CSSStyleSheet.prototype) {
+    SHARED_STYLESHEET = new CSSStyleSheet();
+    SHARED_STYLESHEET.replaceSync(CARD_CSS);
+  }
+  return SHARED_STYLESHEET;
+};
+
 const TRANSLATIONS = {
   es: {
     candle_lighting: "Encendido velas",
@@ -64,7 +237,39 @@ class DiraShabatCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
+    const sig = this._stateSignature();
+    if (sig === this._lastSig) return;
+    this._lastSig = sig;
     this._render();
+  }
+
+  _stateSignature() {
+    if (!this._hass || !this._config) return "";
+    const parts = [
+      this._config.show_times_entity,
+      this._config.modo_shabat_entity,
+      this._config.candle_lighting_entity,
+      this._config.havdalah_entity,
+      this._config.total_days_entity,
+    ];
+    const prefix = this._config.entity_prefix;
+    for (let d = 1; d <= 3; d++) {
+      parts.push(`switch.${prefix}_dia_${d}_cena`);
+      parts.push(`switch.${prefix}_dia_${d}_almuerzo`);
+    }
+    return parts
+      .map((id) => {
+        const s = this._hass.states[id];
+        if (!s) return "_";
+        const attr = id === this._config.total_days_entity ? JSON.stringify(s.attributes?.period_days || 0) : "";
+        return `${s.state}${attr}`;
+      })
+      .join("|");
+  }
+
+  _isEntityOn(entityId) {
+    const s = this._getState(entityId);
+    return !!(s && s.state === "on");
   }
 
   setConfig(config) {
@@ -83,22 +288,9 @@ class DiraShabatCard extends HTMLElement {
       ...config,
     };
 
-    // Auto-detect entities if not specified
     const prefix = this._config.entity_prefix;
-    if (!this._config.show_times_entity) {
-      this._config.show_times_entity = `binary_sensor.${prefix}_mostrar_horarios`;
-    }
-    if (!this._config.modo_shabat_entity) {
-      this._config.modo_shabat_entity = `switch.${prefix}_modo_shabat`;
-    }
-    if (!this._config.candle_lighting_entity) {
-      this._config.candle_lighting_entity = `sensor.${prefix}_encendido_velas`;
-    }
-    if (!this._config.havdalah_entity) {
-      this._config.havdalah_entity = `sensor.${prefix}_finaliza`;
-    }
-    if (!this._config.total_days_entity) {
-      this._config.total_days_entity = `sensor.${prefix}_dias_totales`;
+    for (const [key, builder] of Object.entries(AUTO_ENTITIES)) {
+      if (!this._config[key]) this._config[key] = builder(prefix);
     }
   }
 
@@ -130,28 +322,21 @@ class DiraShabatCard extends HTMLElement {
   }
 
   _attachHoldHandler(element, callback, holdMs = 500) {
-    let timer = null;
-    let fired = false;
-
     const start = (e) => {
       if (e.type === "touchstart") e.preventDefault();
-      fired = false;
       element.classList.add("holding");
-      timer = setTimeout(() => {
-        fired = true;
+      this._holdTimer = setTimeout(() => {
+        this._holdTimer = null;
         element.classList.remove("holding");
-        element.classList.add("hold-complete");
-        setTimeout(() => element.classList.remove("hold-complete"), 200);
-        // Haptic feedback if available
         if (navigator.vibrate) navigator.vibrate(50);
         callback();
       }, holdMs);
     };
 
     const cancel = () => {
-      if (timer) {
-        clearTimeout(timer);
-        timer = null;
+      if (this._holdTimer) {
+        clearTimeout(this._holdTimer);
+        this._holdTimer = null;
       }
       element.classList.remove("holding");
     };
@@ -167,13 +352,18 @@ class DiraShabatCard extends HTMLElement {
   _render() {
     if (!this._hass || !this._config) return;
 
+    // Cancel any in-progress hold before replacing DOM
+    if (this._holdTimer) {
+      clearTimeout(this._holdTimer);
+      this._holdTimer = null;
+    }
+
     const lang = this._config.language || "es";
     const t = TRANSLATIONS[lang] || TRANSLATIONS.es;
     const prefix = this._config.entity_prefix;
 
-    // Check visibility
+    // Tri-state visibility: hidden only when show_times entity is explicitly "off"
     const showTimesState = this._getState(this._config.show_times_entity);
-    // Show if: entity is "on", entity doesn't exist yet, or always_show is true
     const entityExists = showTimesState && showTimesState.state !== "unavailable";
     const shouldShow = !entityExists || showTimesState.state === "on" || this._config.always_show;
 
@@ -184,46 +374,35 @@ class DiraShabatCard extends HTMLElement {
     }
     this.style.display = "";
 
-    // Get states
-    const modoShabat = this._getState(this._config.modo_shabat_entity);
     const candleLighting = this._getState(this._config.candle_lighting_entity);
     const havdalah = this._getState(this._config.havdalah_entity);
     const totalDays = this._getState(this._config.total_days_entity);
 
     const candleTime = candleLighting ? candleLighting.state : "--:--";
     const havdalahTime = havdalah ? havdalah.state : "--:--";
-    const modoOn = modoShabat && modoShabat.state === "on";
-    const numDays = totalDays ? parseInt(totalDays.state) || 1 : 1;
-    const periodDays =
-      totalDays && totalDays.attributes && totalDays.attributes.period_days
-        ? totalDays.attributes.period_days
-        : [];
+    const modoOn = this._isEntityOn(this._config.modo_shabat_entity);
+    const numDays = totalDays ? parseInt(totalDays.state, 10) || 1 : 1;
+    const periodDays = totalDays?.attributes?.period_days || [];
 
-    // Build a flat list of all meals (all days, all meals in one row)
     const mealItems = [];
     for (let day = 1; day <= numDays; day++) {
       const dayInfo = periodDays[day - 1] || {};
-      const dinnerWeekday = dayInfo.dinner_weekday || "";
-      const lunchWeekday = dayInfo.lunch_weekday || "";
-      const dinnerDay = t.days_of_week[dinnerWeekday] || dinnerWeekday;
-      const lunchDay = t.days_of_week[lunchWeekday] || lunchWeekday;
-
+      const dinnerDay = t.days_of_week[dayInfo.dinner_weekday] || dayInfo.dinner_weekday || "";
+      const lunchDay = t.days_of_week[dayInfo.lunch_weekday] || dayInfo.lunch_weekday || "";
       const cenaEntity = `switch.${prefix}_dia_${day}_cena`;
       const almuerzoEntity = `switch.${prefix}_dia_${day}_almuerzo`;
-      const cenaState = this._getState(cenaEntity);
-      const almuerzoState = this._getState(almuerzoEntity);
 
       mealItems.push({
         label: t.dinner,
         day: dinnerDay,
         entity: cenaEntity,
-        on: cenaState && cenaState.state === "on",
+        on: this._isEntityOn(cenaEntity),
       });
       mealItems.push({
         label: t.lunch,
         day: lunchDay,
         entity: almuerzoEntity,
-        on: almuerzoState && almuerzoState.state === "on",
+        on: this._isEntityOn(almuerzoEntity),
       });
     }
 
@@ -242,255 +421,32 @@ class DiraShabatCard extends HTMLElement {
       .join("");
 
     this.shadowRoot.innerHTML = `
-      <style>
-        :host {
-          --text-primary: var(--primary-text-color);
-          --text-secondary: var(--secondary-text-color);
-          --accent-color: var(--primary-color);
-          --section-bg: var(--secondary-background-color);
-          --toggle-off-bg: var(--switch-unchecked-track-color, rgba(128,128,128,0.3));
-          --divider-color: var(--divider-color);
-        }
-
-        ha-card {
-          color: var(--text-primary);
-          font-family: var(--ha-card-font-family, inherit);
-          overflow: hidden;
-        }
-
-        .times-section {
-          display: flex;
-          justify-content: space-around;
-          align-items: center;
-          padding: 10px 16px 8px;
-          border-bottom: 1px solid var(--divider-color);
-        }
-
-        .time-block {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .time-label {
-          font-size: 12px;
-          color: var(--text-secondary);
-          font-weight: 500;
-        }
-
-        .time-icon {
-          font-size: 18px;
-          color: var(--accent-color);
-          line-height: 1;
-          --mdc-icon-size: 18px;
-        }
-
-        .time-value {
-          font-size: 17px;
-          font-weight: 600;
-          color: var(--text-primary);
-        }
-
-        .mode-section {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 10px 16px;
-          cursor: pointer;
-          user-select: none;
-          -webkit-user-select: none;
-          position: relative;
-          overflow: hidden;
-          transition: background 0.2s ease;
-        }
-
-        .meals-container + .mode-section,
-        .mode-section + .meals-container {
-          border-top: 1px solid var(--divider-color);
-        }
-
-        .mode-section::before {
-          content: "";
-          position: absolute;
-          left: 0;
-          top: 0;
-          bottom: 0;
-          width: 0;
-          background: var(--accent-color);
-          opacity: 0.15;
-          transition: width 0s;
-        }
-
-        .mode-section.holding::before {
-          width: 100%;
-          transition: width 500ms linear;
-        }
-
-        .mode-section.hold-complete {
-          background: var(--accent-color);
-          opacity: 0.8;
-        }
-
-        .mode-left {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .mode-icon {
-          font-size: 18px;
-          color: var(--accent-color);
-          --mdc-icon-size: 18px;
-        }
-
-        .mode-label {
-          font-size: 14px;
-          font-weight: 500;
-        }
-
-        .mode-status {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--accent-color);
-        }
-
-        .mode-status.off {
-          color: var(--text-secondary);
-        }
-
-        .meals-container {
-          padding: 10px 16px 12px;
-          border-top: 1px solid var(--divider-color);
-        }
-
-        .meals-header {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin-bottom: 10px;
-        }
-
-        .meals-icon {
-          font-size: 18px;
-          color: var(--accent-color);
-          --mdc-icon-size: 18px;
-        }
-
-        .meals-title {
-          font-size: 14px;
-          font-weight: 500;
-        }
-
-        .meals-row {
-          display: grid;
-          grid-template-columns: repeat(var(--meal-count, 2), 1fr);
-          gap: 8px;
-        }
-
-        .meal-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 6px;
-          min-width: 0;
-        }
-
-        .meal-label {
-          font-size: 11px;
-          color: var(--text-secondary);
-          font-weight: 500;
-          text-align: center;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          max-width: 100%;
-        }
-
-        /* Toggle Switch */
-        .toggle {
-          position: relative;
-          display: inline-block;
-          width: 40px;
-          height: 22px;
-          cursor: pointer;
-        }
-
-        .toggle input {
-          opacity: 0;
-          width: 0;
-          height: 0;
-        }
-
-        .slider {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: var(--toggle-off-bg);
-          border-radius: 22px;
-          transition: background-color 0.3s ease;
-        }
-
-        .slider::before {
-          content: "";
-          position: absolute;
-          height: 16px;
-          width: 16px;
-          left: 3px;
-          bottom: 3px;
-          background-color: white;
-          border-radius: 50%;
-          transition: transform 0.3s ease;
-        }
-
-        .toggle input:checked + .slider {
-          background-color: var(--accent-color);
-        }
-
-        .toggle input:checked + .slider::before {
-          transform: translateX(18px);
-        }
-      </style>
-
       <ha-card>
-        <!-- Times Section -->
         <div class="times-section">
           <div class="time-block">
             <span class="time-label">${t.candle_lighting}</span>
-            <span class="time-icon">
-              <ha-icon icon="mdi:candle"></ha-icon>
-            </span>
+            <span class="card-icon"><ha-icon icon="mdi:candle"></ha-icon></span>
             <span class="time-value">${candleTime}</span>
           </div>
           <div class="time-block">
             <span class="time-label">${t.ends}</span>
-            <span class="time-icon">
-              <ha-icon icon="mdi:moon-waning-crescent"></ha-icon>
-            </span>
+            <span class="card-icon"><ha-icon icon="mdi:moon-waning-crescent"></ha-icon></span>
             <span class="time-value">${havdalahTime}</span>
           </div>
         </div>
 
-        <!-- Mode Section -->
-        <div class="mode-section" id="mode-toggle">
+        <div class="mode-section" id="mode-toggle" title="${t.hold_hint}">
           <div class="mode-left">
-            <span class="mode-icon">
-              <ha-icon icon="mdi:candle"></ha-icon>
-            </span>
+            <span class="card-icon"><ha-icon icon="mdi:candle"></ha-icon></span>
             <span class="mode-label">${t.shabbat_mode}</span>
           </div>
           <span class="mode-status ${modoOn ? "" : "off"}">${modoOn ? t.on : t.off}</span>
         </div>
 
-        <!-- Meals Section (only when Shabbat mode is on) -->
         ${modoOn ? `
         <div class="meals-container">
           <div class="meals-header">
-            <span class="meals-icon">
-              <ha-icon icon="mdi:silverware-fork-knife"></ha-icon>
-            </span>
+            <span class="card-icon"><ha-icon icon="mdi:silverware-fork-knife"></ha-icon></span>
             <span class="meals-title">${t.meals}</span>
           </div>
           <div class="meals-row" style="--meal-count: ${mealItems.length};">
@@ -501,25 +457,24 @@ class DiraShabatCard extends HTMLElement {
       </ha-card>
     `;
 
-    // Attach event listeners
+    const sheet = getStyleSheet();
+    if (sheet) {
+      this.shadowRoot.adoptedStyleSheets = [sheet];
+    } else {
+      const style = document.createElement("style");
+      style.textContent = CARD_CSS;
+      this.shadowRoot.insertBefore(style, this.shadowRoot.firstChild);
+    }
+
     const modeToggle = this.shadowRoot.getElementById("mode-toggle");
     if (modeToggle) {
       this._attachHoldHandler(modeToggle, () => {
-        const state = this._getState(this._config.modo_shabat_entity);
-        const isOn = state && state.state === "on";
-        if (isOn) {
-          // Turning OFF requires confirmation
-          if (window.confirm(t.confirm_off)) {
-            this._toggleEntity(this._config.modo_shabat_entity);
-          }
-        } else {
-          // Turning ON is direct
-          this._toggleEntity(this._config.modo_shabat_entity);
-        }
+        const isOn = this._isEntityOn(this._config.modo_shabat_entity);
+        if (isOn && !window.confirm(t.confirm_off)) return;
+        this._toggleEntity(this._config.modo_shabat_entity);
       });
     }
 
-    // Meal toggles
     const toggles = this.shadowRoot.querySelectorAll(".toggle");
     toggles.forEach((toggle) => {
       toggle.addEventListener("click", (e) => {
@@ -627,32 +582,26 @@ class DiraShabatCardEditor extends HTMLElement {
 
   _updateConfig(key, value) {
     this._config = { ...this._config, [key]: value };
-    // Reset auto-detected entities when prefix changes
     if (key === "entity_prefix") {
-      delete this._config.show_times_entity;
-      delete this._config.modo_shabat_entity;
-      delete this._config.candle_lighting_entity;
-      delete this._config.havdalah_entity;
-      delete this._config.total_days_entity;
+      for (const k of Object.keys(AUTO_ENTITIES)) delete this._config[k];
     }
-    const event = new CustomEvent("config-changed", {
-      detail: { config: this._config },
-      bubbles: true,
-      composed: true,
-    });
-    this.dispatchEvent(event);
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: { config: this._config },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 }
 
-// Register the card (guarded against double-loading)
-if (!customElements.get("dira-shabat-card")) {
-  customElements.define("dira-shabat-card", DiraShabatCard);
-}
-if (!customElements.get("dira-shabat-card-editor")) {
-  customElements.define("dira-shabat-card-editor", DiraShabatCardEditor);
+for (const [tag, cls] of [
+  ["dira-shabat-card", DiraShabatCard],
+  ["dira-shabat-card-editor", DiraShabatCardEditor],
+]) {
+  if (!customElements.get(tag)) customElements.define(tag, cls);
 }
 
-// Register with Lovelace (guarded against double-loading)
 window.customCards = window.customCards || [];
 if (!window.customCards.some((c) => c.type === "dira-shabat-card")) {
   window.customCards.push({
