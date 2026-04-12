@@ -211,21 +211,18 @@ class DiraShabatCard extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host {
-          --card-bg: var(--ha-card-background, var(--card-background-color, #1c1c1e));
-          --section-bg: var(--primary-background-color, #2c2c2e);
-          --text-primary: var(--primary-text-color, #ffffff);
-          --text-secondary: var(--secondary-text-color, #a0a0a5);
-          --accent-color: var(--primary-color, #4a9eff);
-          --toggle-off-bg: #3a3a3c;
-          --divider-color: var(--divider-color, rgba(255,255,255,0.08));
+          --text-primary: var(--primary-text-color);
+          --text-secondary: var(--secondary-text-color);
+          --accent-color: var(--primary-color);
+          --section-bg: var(--secondary-background-color);
+          --toggle-off-bg: var(--switch-unchecked-track-color, rgba(128,128,128,0.3));
+          --divider-color: var(--divider-color);
         }
 
         ha-card {
-          background: var(--card-bg);
-          border-radius: 16px;
-          overflow: hidden;
           color: var(--text-primary);
           font-family: var(--ha-card-font-family, inherit);
+          overflow: hidden;
         }
 
         .times-section {
