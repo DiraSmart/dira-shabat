@@ -19,6 +19,8 @@ const TRANSLATIONS = {
     meals: "Comidas",
     on: "On",
     off: "Off",
+    confirm_off: "¿Deseas apagar el Modo Shabat?",
+    hold_hint: "Mantener presionado",
     days_of_week: {
       Monday: "Lun",
       Tuesday: "Mar",
@@ -38,6 +40,8 @@ const TRANSLATIONS = {
     meals: "Meals",
     on: "On",
     off: "Off",
+    confirm_off: "Turn off Shabbat Mode?",
+    hold_hint: "Press and hold",
     days_of_week: {
       Monday: "Mon",
       Tuesday: "Tue",
@@ -123,6 +127,41 @@ class DiraShabatCard extends HTMLElement {
     this._hass.callService("switch", "toggle", {
       entity_id: entityId,
     });
+  }
+
+  _attachHoldHandler(element, callback, holdMs = 500) {
+    let timer = null;
+    let fired = false;
+
+    const start = (e) => {
+      if (e.type === "touchstart") e.preventDefault();
+      fired = false;
+      element.classList.add("holding");
+      timer = setTimeout(() => {
+        fired = true;
+        element.classList.remove("holding");
+        element.classList.add("hold-complete");
+        setTimeout(() => element.classList.remove("hold-complete"), 200);
+        // Haptic feedback if available
+        if (navigator.vibrate) navigator.vibrate(50);
+        callback();
+      }, holdMs);
+    };
+
+    const cancel = () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      element.classList.remove("holding");
+    };
+
+    element.addEventListener("mousedown", start);
+    element.addEventListener("mouseup", cancel);
+    element.addEventListener("mouseleave", cancel);
+    element.addEventListener("touchstart", start, { passive: false });
+    element.addEventListener("touchend", cancel);
+    element.addEventListener("touchcancel", cancel);
   }
 
   _render() {
@@ -272,11 +311,33 @@ class DiraShabatCard extends HTMLElement {
           border-radius: 12px;
           margin-bottom: 8px;
           cursor: pointer;
+          user-select: none;
+          -webkit-user-select: none;
+          position: relative;
+          overflow: hidden;
           transition: background 0.2s ease;
         }
 
-        .mode-section:active {
-          background: rgba(255,255,255,0.05);
+        .mode-section::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 0;
+          background: var(--accent-color);
+          opacity: 0.15;
+          transition: width 0s;
+        }
+
+        .mode-section.holding::before {
+          width: 100%;
+          transition: width 500ms linear;
+        }
+
+        .mode-section.hold-complete {
+          background: var(--accent-color);
+          opacity: 0.8;
         }
 
         .mode-left {
@@ -469,8 +530,18 @@ class DiraShabatCard extends HTMLElement {
     // Attach event listeners
     const modeToggle = this.shadowRoot.getElementById("mode-toggle");
     if (modeToggle) {
-      modeToggle.addEventListener("click", () => {
-        this._toggleEntity(this._config.modo_shabat_entity);
+      this._attachHoldHandler(modeToggle, () => {
+        const state = this._getState(this._config.modo_shabat_entity);
+        const isOn = state && state.state === "on";
+        if (isOn) {
+          // Turning OFF requires confirmation
+          if (window.confirm(t.confirm_off)) {
+            this._toggleEntity(this._config.modo_shabat_entity);
+          }
+        } else {
+          // Turning ON is direct
+          this._toggleEntity(this._config.modo_shabat_entity);
+        }
       });
     }
 
