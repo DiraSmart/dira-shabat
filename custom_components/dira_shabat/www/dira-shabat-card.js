@@ -514,7 +514,8 @@ class DiraShabatCard extends HTMLElement {
           <span class="mode-status ${modoOn ? "" : "off"}">${modoOn ? t.on : t.off}</span>
         </div>
 
-        <!-- Meals Section -->
+        <!-- Meals Section (only when Shabbat mode is on) -->
+        ${modoOn ? `
         <div class="meals-container">
           <div class="meals-header">
             <span class="meals-icon">
@@ -524,6 +525,7 @@ class DiraShabatCard extends HTMLElement {
           </div>
           ${mealsHTML}
         </div>
+        ` : ""}
       </ha-card>
     `;
 
