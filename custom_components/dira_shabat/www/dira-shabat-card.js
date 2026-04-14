@@ -31,57 +31,57 @@ const CARD_CSS = `
     padding: 12px 16px;
   }
 
-  /* Times row: icon + label + time, inline, no backgrounds */
+  /* Times row: small icon + label-on-top / value-on-bottom, inline */
   .times-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: 18px;
+    padding: 4px 0 8px;
   }
   .time-block {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     min-width: 0;
   }
   .time-icon {
     color: var(--accent);
-    --mdc-icon-size: 18px;
+    --mdc-icon-size: 20px;
     line-height: 1;
     flex: 0 0 auto;
   }
+  .time-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
   .time-label {
-    font-size: 13px;
+    font-size: 11px;
     color: var(--text-secondary);
     font-weight: 500;
+    line-height: 1.2;
   }
   .time-value {
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
     color: var(--text-primary);
+    line-height: 1.2;
   }
 
-  /* Mode row: pressable, state-aware */
+  /* Mode row: pressable, simple row */
   .mode-row {
-    margin-top: 10px;
+    margin-top: 4px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 12px;
+    gap: 10px;
+    padding: 10px 0;
     border-top: 1px solid var(--divider-color);
     border-bottom: 1px solid var(--divider-color);
-    border-left: 3px solid transparent;
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
     position: relative;
     overflow: hidden;
-    transition: border-left-color 0.25s ease;
-  }
-  .mode-row.on {
-    border-left-color: var(--accent);
   }
   .mode-row::before {
     content: "";
@@ -97,47 +97,27 @@ const CARD_CSS = `
     width: 100%;
     transition: width 500ms linear;
   }
-  .mode-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-  }
   .mode-icon {
-    --mdc-icon-size: 22px;
+    --mdc-icon-size: 20px;
     line-height: 1;
     color: var(--text-secondary);
-    transition: color 0.25s ease, filter 0.25s ease;
+    transition: color 0.25s ease;
+    flex: 0 0 auto;
   }
   .mode-row.on .mode-icon {
     color: var(--accent);
-    filter: drop-shadow(0 0 6px var(--accent));
-    animation: flicker 2.5s ease-in-out infinite;
-  }
-  @keyframes flicker {
-    0%, 100% { opacity: 1; }
-    45% { opacity: 0.85; }
-    55% { opacity: 1; }
-    70% { opacity: 0.9; }
   }
   .mode-label {
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 500;
   }
   .mode-status {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
-    padding: 4px 12px;
-    border-radius: 999px;
-    background: var(--toggle-off-bg);
+    font-size: 14px;
+    font-weight: 600;
     color: var(--text-secondary);
-    transition: background 0.25s ease, color 0.25s ease;
   }
   .mode-row.on .mode-status {
-    background: var(--accent);
-    color: white;
+    color: var(--accent);
   }
 
   /* Meals section header */
@@ -160,14 +140,13 @@ const CARD_CSS = `
   .meals-row {
     display: grid;
     grid-template-columns: repeat(var(--meal-count, 2), 1fr);
-    gap: 4px;
-    padding-bottom: 2px;
+    gap: 8px;
   }
   .meal-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     min-width: 0;
   }
   .meal-label {
@@ -175,6 +154,10 @@ const CARD_CSS = `
     font-weight: 500;
     color: var(--text-primary);
     line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
   .meal-day {
     font-size: 11px;
@@ -182,44 +165,30 @@ const CARD_CSS = `
     line-height: 1.2;
   }
 
-  /* Toggle switch */
-  .toggle {
-    position: relative;
-    display: inline-block;
-    width: 40px;
-    height: 22px;
+  /* ON/OFF pill button */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 14px;
+    min-width: 52px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
     cursor: pointer;
-    margin: 2px 0;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    border: 1.5px solid var(--toggle-off-bg);
+    background: transparent;
+    color: var(--text-secondary);
   }
-  .toggle input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-    position: absolute;
-  }
-  .slider {
-    position: absolute;
-    inset: 0;
-    background-color: var(--toggle-off-bg);
-    border-radius: 22px;
-    transition: background-color 0.25s ease;
-  }
-  .slider::before {
-    content: "";
-    position: absolute;
-    height: 16px;
-    width: 16px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    border-radius: 50%;
-    transition: transform 0.25s ease;
-  }
-  .toggle input:checked + .slider {
-    background-color: var(--accent);
-  }
-  .toggle input:checked + .slider::before {
-    transform: translateX(18px);
+  .pill.on {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
   }
 `;
 
@@ -466,12 +435,8 @@ class DiraShabatCard extends HTMLElement {
       .map(
         (m) => `
         <div class="meal-item">
-          <span class="meal-label">${m.label}</span>
-          <label class="toggle" data-entity="${m.entity}">
-            <input type="checkbox" ${m.on ? "checked" : ""} />
-            <span class="slider"></span>
-          </label>
-          ${m.day ? `<span class="meal-day">${m.day}</span>` : ""}
+          <span class="meal-label">${m.label}${m.day ? ` (${m.day})` : ""}</span>
+          <div class="pill ${m.on ? "on" : ""}" data-entity="${m.entity}">${m.on ? t.on : t.off}</div>
         </div>
       `,
       )
@@ -482,21 +447,23 @@ class DiraShabatCard extends HTMLElement {
         <div class="times-row">
           <div class="time-block">
             <span class="time-icon"><ha-icon icon="mdi:candle"></ha-icon></span>
-            <span class="time-label">${t.candle_lighting}${candleWeekday ? ` (${candleWeekday})` : ""}</span>
-            <span class="time-value">${candleTime}</span>
+            <div class="time-text">
+              <span class="time-label">${t.candle_lighting}${candleWeekday ? ` (${candleWeekday})` : ""}</span>
+              <span class="time-value">${candleTime}</span>
+            </div>
           </div>
           <div class="time-block">
             <span class="time-icon"><ha-icon icon="mdi:moon-waning-crescent"></ha-icon></span>
-            <span class="time-label">${t.ends}${havdalahWeekday ? ` (${havdalahWeekday})` : ""}</span>
-            <span class="time-value">${havdalahTime}</span>
+            <div class="time-text">
+              <span class="time-label">${t.ends}${havdalahWeekday ? ` (${havdalahWeekday})` : ""}</span>
+              <span class="time-value">${havdalahTime}</span>
+            </div>
           </div>
         </div>
 
         <div class="mode-row ${modoOn ? "on" : ""}" id="mode-toggle" title="${t.hold_hint}">
-          <div class="mode-left">
-            <span class="mode-icon"><ha-icon icon="${modoOn ? "mdi:candle" : "mdi:candle-outline"}"></ha-icon></span>
-            <span class="mode-label">${t.shabbat_mode}</span>
-          </div>
+          <span class="mode-icon"><ha-icon icon="mdi:candle"></ha-icon></span>
+          <span class="mode-label">${t.shabbat_mode}</span>
           <span class="mode-status">${modoOn ? t.on : t.off}</span>
         </div>
 
@@ -530,9 +497,10 @@ class DiraShabatCard extends HTMLElement {
       });
     }
 
-    this.shadowRoot.querySelectorAll(".meal-chip").forEach((chip) => {
-      chip.addEventListener("click", () => {
-        const entityId = chip.dataset.entity;
+    this.shadowRoot.querySelectorAll(".pill").forEach((pill) => {
+      pill.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const entityId = pill.dataset.entity;
         if (entityId) this._toggleEntity(entityId);
       });
     });
