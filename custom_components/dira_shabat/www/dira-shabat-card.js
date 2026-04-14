@@ -169,9 +169,11 @@ const CARD_CSS = `
     align-items: center;
     justify-content: center;
     width: 100%;
-    padding: 3px 4px;
+    max-width: 130px;
+    margin: 0 auto;
+    padding: 5px 10px;
     border-radius: 999px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.5px;
     text-transform: uppercase;
