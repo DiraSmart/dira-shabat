@@ -22,78 +22,56 @@ const CARD_CSS = `
     --text-primary: var(--primary-text-color);
     --text-secondary: var(--secondary-text-color);
     --accent: var(--primary-color);
-    --accent-soft: color-mix(in srgb, var(--primary-color) 20%, transparent);
-    --accent-softer: color-mix(in srgb, var(--primary-color) 10%, transparent);
-    --chip-bg: var(--ha-card-background, var(--card-background-color));
-    --chip-border: var(--divider-color);
+    --toggle-off-bg: var(--switch-unchecked-track-color, rgba(128,128,128,0.3));
   }
   ha-card {
     color: var(--text-primary);
     font-family: var(--ha-card-font-family, inherit);
     overflow: hidden;
-    padding: 14px;
+    padding: 12px 16px;
   }
 
-  /* Icon badge — rounded square with tinted background */
-  .icon-badge {
-    flex: 0 0 auto;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--accent-soft);
-    color: var(--accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    --mdc-icon-size: 20px;
-  }
-  .icon-badge.sm {
-    width: 28px;
-    height: 28px;
-    --mdc-icon-size: 16px;
-  }
-
-  /* Top row: times side-by-side */
+  /* Times row: icon + label + time, inline, no backgrounds */
   .times-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
   }
-  .time-tile {
+  .time-block {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    border-radius: 12px;
-    background: var(--accent-softer);
-  }
-  .time-text {
-    display: flex;
-    flex-direction: column;
+    gap: 6px;
     min-width: 0;
   }
+  .time-icon {
+    color: var(--accent);
+    --mdc-icon-size: 18px;
+    line-height: 1;
+    flex: 0 0 auto;
+  }
   .time-label {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--text-secondary);
     font-weight: 500;
-    line-height: 1.2;
   }
   .time-value {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
-    letter-spacing: 0.2px;
-    line-height: 1.2;
+    color: var(--text-primary);
   }
 
-  /* Mode row: pressable with progress overlay */
+  /* Mode row: pressable, no background (hover only) */
   .mode-row {
     margin-top: 10px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 12px;
-    padding: 10px 12px;
-    border-radius: 12px;
-    background: var(--accent-softer);
+    padding: 10px 0;
+    border-top: 1px solid var(--divider-color);
+    border-bottom: 1px solid var(--divider-color);
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
@@ -106,7 +84,7 @@ const CARD_CSS = `
     inset: 0 auto 0 0;
     width: 0;
     background: var(--accent);
-    opacity: 0.25;
+    opacity: 0.1;
     transition: width 0s;
     pointer-events: none;
   }
@@ -114,113 +92,110 @@ const CARD_CSS = `
     width: 100%;
     transition: width 500ms linear;
   }
-  .mode-text {
-    flex: 1;
-    min-width: 0;
-  }
-  .mode-label {
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.2;
-  }
-  .mode-hint {
-    font-size: 11px;
-    color: var(--text-secondary);
-    line-height: 1.2;
-    margin-top: 2px;
-  }
-  .mode-status {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: var(--accent);
-    color: var(--text-primary-color, #fff);
-    text-transform: uppercase;
-  }
-  .mode-status.off {
-    background: var(--toggle-off-bg, rgba(128,128,128,0.25));
-    color: var(--text-secondary);
-  }
-
-  /* Section header (for Meals) */
-  .section-header {
+  .mode-left {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-top: 14px;
-    margin-bottom: 8px;
+    gap: 8px;
+    min-width: 0;
   }
-  .section-header::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background: var(--chip-border);
-  }
-  .section-icon {
+  .mode-icon {
     color: var(--accent);
-    --mdc-icon-size: 18px;
+    --mdc-icon-size: 20px;
     line-height: 1;
   }
-  .section-title {
+  .mode-label {
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .mode-status {
     font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.3px;
+    color: var(--accent);
+  }
+  .mode-status.off {
+    color: var(--text-secondary);
   }
 
-  /* Meals as chips */
+  /* Meals section header */
+  .meals-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    margin-bottom: 10px;
+  }
+  .meals-header .mode-icon {
+    --mdc-icon-size: 18px;
+  }
+  .meals-title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  /* Meals row: auto-sized grid (2, 4, or 6 columns) */
   .meals-row {
     display: grid;
     grid-template-columns: repeat(var(--meal-count, 2), 1fr);
-    gap: 8px;
+    gap: 4px;
+    padding-bottom: 2px;
   }
-  .meal-chip {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
-    border-radius: 12px;
-    background: var(--accent-softer);
-    cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
-    transition: background 0.2s ease;
-    min-width: 0;
-  }
-  .meal-chip.on {
-    background: var(--accent-soft);
-  }
-  .meal-chip-text {
-    flex: 1;
-    min-width: 0;
+  .meal-item {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
   }
-  .meal-chip-label {
+  .meal-label {
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
+    color: var(--text-primary);
     line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
-  .meal-chip-day {
-    font-size: 10px;
+  .meal-day {
+    font-size: 11px;
     color: var(--text-secondary);
     line-height: 1.2;
   }
-  .meal-dot {
-    flex: 0 0 auto;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--toggle-off-bg, rgba(128,128,128,0.35));
-    transition: background 0.2s ease, transform 0.2s ease;
+
+  /* Toggle switch */
+  .toggle {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+    cursor: pointer;
+    margin: 2px 0;
   }
-  .meal-chip.on .meal-dot {
-    background: var(--accent);
-    transform: scale(1.15);
+  .toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+  }
+  .slider {
+    position: absolute;
+    inset: 0;
+    background-color: var(--toggle-off-bg);
+    border-radius: 22px;
+    transition: background-color 0.25s ease;
+  }
+  .slider::before {
+    content: "";
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.25s ease;
+  }
+  .toggle input:checked + .slider {
+    background-color: var(--accent);
+  }
+  .toggle input:checked + .slider::before {
+    transform: translateX(18px);
   }
 `;
 
@@ -247,13 +222,13 @@ const TRANSLATIONS = {
     confirm_off: "¿Deseas apagar el Modo Shabat?",
     hold_hint: "Mantener presionado",
     days_of_week: {
-      Monday: "Lun",
-      Tuesday: "Mar",
-      Wednesday: "Mié",
-      Thursday: "Jue",
-      Friday: "Vie",
-      Saturday: "Sáb",
-      Sunday: "Dom",
+      Monday: "Lunes",
+      Tuesday: "Martes",
+      Wednesday: "Miércoles",
+      Thursday: "Jueves",
+      Friday: "Viernes",
+      Saturday: "Sábado",
+      Sunday: "Domingo",
     },
   },
   en: {
@@ -268,13 +243,13 @@ const TRANSLATIONS = {
     confirm_off: "Turn off Shabbat Mode?",
     hold_hint: "Press and hold",
     days_of_week: {
-      Monday: "Mon",
-      Tuesday: "Tue",
-      Wednesday: "Wed",
-      Thursday: "Thu",
-      Friday: "Fri",
-      Saturday: "Sat",
-      Sunday: "Sun",
+      Monday: "Monday",
+      Tuesday: "Tuesday",
+      Wednesday: "Wednesday",
+      Thursday: "Thursday",
+      Friday: "Friday",
+      Saturday: "Saturday",
+      Sunday: "Sunday",
     },
   },
 };
@@ -458,15 +433,21 @@ class DiraShabatCard extends HTMLElement {
       });
     }
 
+    const firstDay = periodDays[0] || {};
+    const lastDay = periodDays[numDays - 1] || firstDay;
+    const candleWeekday = t.days_of_week[firstDay.dinner_weekday] || firstDay.dinner_weekday || "";
+    const havdalahWeekday = t.days_of_week[lastDay.lunch_weekday] || lastDay.lunch_weekday || "";
+
     const mealsHTML = mealItems
       .map(
         (m) => `
-        <div class="meal-chip ${m.on ? "on" : ""}" data-entity="${m.entity}">
-          <div class="meal-chip-text">
-            <span class="meal-chip-label">${m.label}</span>
-            ${m.day ? `<span class="meal-chip-day">${m.day}</span>` : ""}
-          </div>
-          <span class="meal-dot"></span>
+        <div class="meal-item">
+          <span class="meal-label">${m.label}</span>
+          <label class="toggle" data-entity="${m.entity}">
+            <input type="checkbox" ${m.on ? "checked" : ""} />
+            <span class="slider"></span>
+          </label>
+          ${m.day ? `<span class="meal-day">${m.day}</span>` : ""}
         </div>
       `,
       )
@@ -475,35 +456,30 @@ class DiraShabatCard extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <ha-card>
         <div class="times-row">
-          <div class="time-tile">
-            <span class="icon-badge sm"><ha-icon icon="mdi:candle"></ha-icon></span>
-            <div class="time-text">
-              <span class="time-label">${t.candle_lighting}</span>
-              <span class="time-value">${candleTime}</span>
-            </div>
+          <div class="time-block">
+            <span class="time-icon"><ha-icon icon="mdi:candle"></ha-icon></span>
+            <span class="time-label">${t.candle_lighting}${candleWeekday ? ` (${candleWeekday})` : ""}</span>
+            <span class="time-value">${candleTime}</span>
           </div>
-          <div class="time-tile">
-            <span class="icon-badge sm"><ha-icon icon="mdi:moon-waning-crescent"></ha-icon></span>
-            <div class="time-text">
-              <span class="time-label">${t.ends}</span>
-              <span class="time-value">${havdalahTime}</span>
-            </div>
+          <div class="time-block">
+            <span class="time-icon"><ha-icon icon="mdi:moon-waning-crescent"></ha-icon></span>
+            <span class="time-label">${t.ends}${havdalahWeekday ? ` (${havdalahWeekday})` : ""}</span>
+            <span class="time-value">${havdalahTime}</span>
           </div>
         </div>
 
         <div class="mode-row" id="mode-toggle" title="${t.hold_hint}">
-          <span class="icon-badge"><ha-icon icon="mdi:candle"></ha-icon></span>
-          <div class="mode-text">
-            <div class="mode-label">${t.shabbat_mode}</div>
-            <div class="mode-hint">${t.hold_hint}</div>
+          <div class="mode-left">
+            <span class="mode-icon"><ha-icon icon="mdi:candle"></ha-icon></span>
+            <span class="mode-label">${t.shabbat_mode}</span>
           </div>
           <span class="mode-status ${modoOn ? "" : "off"}">${modoOn ? t.on : t.off}</span>
         </div>
 
         ${modoOn ? `
-        <div class="section-header">
-          <span class="section-icon"><ha-icon icon="mdi:silverware-fork-knife"></ha-icon></span>
-          <span class="section-title">${t.meals}</span>
+        <div class="meals-header">
+          <span class="mode-icon"><ha-icon icon="mdi:silverware-fork-knife"></ha-icon></span>
+          <span class="meals-title">${t.meals}</span>
         </div>
         <div class="meals-row" style="--meal-count: ${mealItems.length};">
           ${mealsHTML}
