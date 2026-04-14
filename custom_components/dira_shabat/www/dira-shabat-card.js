@@ -62,21 +62,26 @@ const CARD_CSS = `
     color: var(--text-primary);
   }
 
-  /* Mode row: pressable, no background (hover only) */
+  /* Mode row: pressable, state-aware */
   .mode-row {
     margin-top: 10px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 10px 0;
+    padding: 10px 12px;
     border-top: 1px solid var(--divider-color);
     border-bottom: 1px solid var(--divider-color);
+    border-left: 3px solid transparent;
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
     position: relative;
     overflow: hidden;
+    transition: border-left-color 0.25s ease;
+  }
+  .mode-row.on {
+    border-left-color: var(--accent);
   }
   .mode-row::before {
     content: "";
@@ -95,25 +100,44 @@ const CARD_CSS = `
   .mode-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     min-width: 0;
   }
   .mode-icon {
-    color: var(--accent);
-    --mdc-icon-size: 20px;
+    --mdc-icon-size: 22px;
     line-height: 1;
+    color: var(--text-secondary);
+    transition: color 0.25s ease, filter 0.25s ease;
+  }
+  .mode-row.on .mode-icon {
+    color: var(--accent);
+    filter: drop-shadow(0 0 6px var(--accent));
+    animation: flicker 2.5s ease-in-out infinite;
+  }
+  @keyframes flicker {
+    0%, 100% { opacity: 1; }
+    45% { opacity: 0.85; }
+    55% { opacity: 1; }
+    70% { opacity: 0.9; }
   }
   .mode-label {
     font-size: 15px;
-    font-weight: 500;
+    font-weight: 600;
   }
   .mode-status {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--accent);
-  }
-  .mode-status.off {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--toggle-off-bg);
     color: var(--text-secondary);
+    transition: background 0.25s ease, color 0.25s ease;
+  }
+  .mode-row.on .mode-status {
+    background: var(--accent);
+    color: white;
   }
 
   /* Meals section header */
@@ -468,12 +492,12 @@ class DiraShabatCard extends HTMLElement {
           </div>
         </div>
 
-        <div class="mode-row" id="mode-toggle" title="${t.hold_hint}">
+        <div class="mode-row ${modoOn ? "on" : ""}" id="mode-toggle" title="${t.hold_hint}">
           <div class="mode-left">
-            <span class="mode-icon"><ha-icon icon="mdi:candle"></ha-icon></span>
+            <span class="mode-icon"><ha-icon icon="${modoOn ? "mdi:candle" : "mdi:candle-outline"}"></ha-icon></span>
             <span class="mode-label">${t.shabbat_mode}</span>
           </div>
-          <span class="mode-status ${modoOn ? "" : "off"}">${modoOn ? t.on : t.off}</span>
+          <span class="mode-status">${modoOn ? t.on : t.off}</span>
         </div>
 
         ${modoOn ? `
