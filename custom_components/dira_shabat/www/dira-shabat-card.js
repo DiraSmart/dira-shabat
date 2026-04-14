@@ -211,7 +211,7 @@ const getStyleSheet = () => {
 
 const TRANSLATIONS = {
   es: {
-    candle_lighting: "Encendido velas",
+    candle_lighting: "Velas",
     ends: "Finaliza",
     shabbat_mode: "Modo Shabat",
     dinner: "Cena",
@@ -232,7 +232,7 @@ const TRANSLATIONS = {
     },
   },
   en: {
-    candle_lighting: "Candle Lighting",
+    candle_lighting: "Candles",
     ends: "Ends",
     shabbat_mode: "Shabbat Mode",
     dinner: "Dinner",
