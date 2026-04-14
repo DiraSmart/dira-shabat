@@ -41,6 +41,7 @@ const CARD_CSS = `
   .time-block {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 12px;
     min-width: 0;
   }
