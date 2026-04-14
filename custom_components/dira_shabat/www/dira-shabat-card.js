@@ -136,43 +136,44 @@ const CARD_CSS = `
   /* Meals row: auto-sized grid (2, 4, or 6 columns) */
   .meals-row {
     display: grid;
-    grid-template-columns: repeat(var(--meal-count, 2), 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(var(--meal-count, 2), minmax(0, 1fr));
+    gap: 6px;
   }
   .meal-item {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 6px;
+    align-items: stretch;
+    gap: 4px;
     min-width: 0;
   }
   .meal-label {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     color: var(--text-primary);
     line-height: 1.2;
+    text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 100%;
   }
   .meal-day {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--text-secondary);
     line-height: 1.2;
+    text-align: center;
   }
 
   /* ON/OFF pill button */
   .pill {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px 14px;
-    min-width: 52px;
+    width: 100%;
+    padding: 3px 4px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
     cursor: pointer;
     user-select: none;
@@ -181,6 +182,7 @@ const CARD_CSS = `
     border: 1.5px solid var(--toggle-off-bg);
     background: transparent;
     color: var(--text-secondary);
+    box-sizing: border-box;
   }
   .pill.on {
     background: var(--accent);
