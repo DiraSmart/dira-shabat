@@ -31,22 +31,22 @@ const CARD_CSS = `
     padding: 12px 16px;
   }
 
-  /* Times row: small icon + label-on-top / value-on-bottom, inline */
+  /* Times row: split evenly, larger text */
   .times-row {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    padding: 4px 0 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 6px 0 10px;
   }
   .time-block {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     min-width: 0;
   }
   .time-icon {
     color: var(--accent);
-    --mdc-icon-size: 20px;
+    --mdc-icon-size: 26px;
     line-height: 1;
     flex: 0 0 auto;
   }
@@ -56,13 +56,13 @@ const CARD_CSS = `
     min-width: 0;
   }
   .time-label {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-secondary);
     font-weight: 500;
-    line-height: 1.2;
+    line-height: 1.3;
   }
   .time-value {
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--text-primary);
     line-height: 1.2;
@@ -100,12 +100,8 @@ const CARD_CSS = `
   .mode-icon {
     --mdc-icon-size: 20px;
     line-height: 1;
-    color: var(--text-secondary);
-    transition: color 0.25s ease;
-    flex: 0 0 auto;
-  }
-  .mode-row.on .mode-icon {
     color: var(--accent);
+    flex: 0 0 auto;
   }
   .mode-label {
     font-size: 14px;
@@ -215,6 +211,15 @@ const TRANSLATIONS = {
     confirm_off: "¿Deseas apagar el Modo Shabat?",
     hold_hint: "Mantener presionado",
     days_of_week: {
+      Monday: "Lun.",
+      Tuesday: "Mar.",
+      Wednesday: "Mié.",
+      Thursday: "Jue.",
+      Friday: "Vie.",
+      Saturday: "Sáb.",
+      Sunday: "Dom.",
+    },
+    days_of_week_full: {
       Monday: "Lunes",
       Tuesday: "Martes",
       Wednesday: "Miércoles",
@@ -236,6 +241,15 @@ const TRANSLATIONS = {
     confirm_off: "Turn off Shabbat Mode?",
     hold_hint: "Press and hold",
     days_of_week: {
+      Monday: "Mon",
+      Tuesday: "Tue",
+      Wednesday: "Wed",
+      Thursday: "Thu",
+      Friday: "Fri",
+      Saturday: "Sat",
+      Sunday: "Sun",
+    },
+    days_of_week_full: {
       Monday: "Monday",
       Tuesday: "Tuesday",
       Wednesday: "Wednesday",
@@ -426,17 +440,24 @@ class DiraShabatCard extends HTMLElement {
       });
     }
 
+    const isMultiDay = numDays > 1;
     const firstDay = periodDays[0] || {};
     const lastDay = periodDays[numDays - 1] || firstDay;
-    const candleWeekday = t.days_of_week[firstDay.dinner_weekday] || firstDay.dinner_weekday || "";
-    const havdalahWeekday = t.days_of_week[lastDay.lunch_weekday] || lastDay.lunch_weekday || "";
+    const fullDays = t.days_of_week_full || t.days_of_week;
+    const candleWeekday = isMultiDay
+      ? fullDays[firstDay.dinner_weekday] || firstDay.dinner_weekday || ""
+      : "";
+    const havdalahWeekday = isMultiDay
+      ? fullDays[lastDay.lunch_weekday] || lastDay.lunch_weekday || ""
+      : "";
 
     const mealsHTML = mealItems
       .map(
         (m) => `
         <div class="meal-item">
-          <span class="meal-label">${m.label}${m.day ? ` (${m.day})` : ""}</span>
+          <span class="meal-label">${m.label}</span>
           <div class="pill ${m.on ? "on" : ""}" data-entity="${m.entity}">${m.on ? t.on : t.off}</div>
+          ${m.day ? `<span class="meal-day">${m.day}</span>` : ""}
         </div>
       `,
       )
@@ -462,7 +483,7 @@ class DiraShabatCard extends HTMLElement {
         </div>
 
         <div class="mode-row ${modoOn ? "on" : ""}" id="mode-toggle" title="${t.hold_hint}">
-          <span class="mode-icon"><ha-icon icon="mdi:candle"></ha-icon></span>
+          <span class="mode-icon"><ha-icon icon="mdi:power-plug"></ha-icon></span>
           <span class="mode-label">${t.shabbat_mode}</span>
           <span class="mode-status">${modoOn ? t.on : t.off}</span>
         </div>
