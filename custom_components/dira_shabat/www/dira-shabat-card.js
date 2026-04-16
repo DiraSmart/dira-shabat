@@ -169,7 +169,7 @@ const CARD_CSS = `
     align-items: center;
     justify-content: center;
     width: 100%;
-    max-width: 130px;
+    max-width: 90px;
     margin: 0 auto;
     padding: 5px 10px;
     border-radius: 999px;
