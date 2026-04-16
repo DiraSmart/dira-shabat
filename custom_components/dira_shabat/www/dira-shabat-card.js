@@ -46,8 +46,7 @@ const CARD_CSS = `
     min-width: 0;
   }
   .time-icon {
-    color: var(--accent);
-    --mdc-icon-size: 26px;
+    font-size: 22px;
     line-height: 1;
     flex: 0 0 auto;
   }
@@ -99,9 +98,8 @@ const CARD_CSS = `
     transition: width 500ms linear;
   }
   .mode-icon {
-    --mdc-icon-size: 20px;
+    font-size: 18px;
     line-height: 1;
-    color: var(--accent);
     flex: 0 0 auto;
   }
   .mode-label {
@@ -472,14 +470,14 @@ class DiraShabatCard extends HTMLElement {
       <ha-card>
         <div class="times-row">
           <div class="time-block">
-            <span class="time-icon"><ha-icon icon="mdi:candle"></ha-icon></span>
+            <span class="time-icon">🕯️</span>
             <div class="time-text">
               <span class="time-label">${t.candle_lighting}${candleWeekday ? ` (${candleWeekday})` : ""}</span>
               <span class="time-value">${candleTime}</span>
             </div>
           </div>
           <div class="time-block">
-            <span class="time-icon"><ha-icon icon="mdi:moon-waning-crescent"></ha-icon></span>
+            <span class="time-icon">🌙</span>
             <div class="time-text">
               <span class="time-label">${t.ends}${havdalahWeekday ? ` (${havdalahWeekday})` : ""}</span>
               <span class="time-value">${havdalahTime}</span>
@@ -488,14 +486,14 @@ class DiraShabatCard extends HTMLElement {
         </div>
 
         <div class="mode-row ${modoOn ? "on" : ""}" id="mode-toggle" title="${t.hold_hint}">
-          <span class="mode-icon"><ha-icon icon="mdi:power-plug"></ha-icon></span>
+          <span class="mode-icon">🔌</span>
           <span class="mode-label">${t.shabbat_mode}</span>
           <span class="mode-status">${modoOn ? t.on : t.off}</span>
         </div>
 
         ${modoOn ? `
         <div class="meals-header">
-          <span class="mode-icon"><ha-icon icon="mdi:silverware-fork-knife"></ha-icon></span>
+          <span class="mode-icon">🍽️</span>
           <span class="meals-title">${t.meals}</span>
         </div>
         <div class="meals-row" style="--meal-count: ${mealItems.length};">
