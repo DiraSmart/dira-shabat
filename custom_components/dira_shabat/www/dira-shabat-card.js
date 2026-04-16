@@ -470,7 +470,7 @@ class DiraShabatCard extends HTMLElement {
       <ha-card>
         <div class="times-row">
           <div class="time-block">
-            <span class="time-icon">🕯️</span>
+            <span class="time-icon">🕯️🕯️</span>
             <div class="time-text">
               <span class="time-label">${t.candle_lighting}${candleWeekday ? ` (${candleWeekday})` : ""}</span>
               <span class="time-value">${candleTime}</span>
