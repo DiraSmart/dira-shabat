@@ -9,44 +9,6 @@ console.info(
   "color: #6a3de8; background: #ede7f6; font-weight: 700; padding: 2px 8px; border-radius: 0 4px 4px 0;"
 );
 
-const SVG_CANDLES = `<svg viewBox="0 0 28 24" width="26" height="22" fill="none">
-  <rect x="8" y="10" width="3.5" height="11" rx="1.2" fill="#E8D5B7"/>
-  <rect x="16.5" y="10" width="3.5" height="11" rx="1.2" fill="#E8D5B7"/>
-  <line x1="9.75" y1="10" x2="9.75" y2="6" stroke="#D4C4A0" stroke-width="0.7"/>
-  <line x1="18.25" y1="10" x2="18.25" y2="6" stroke="#D4C4A0" stroke-width="0.7"/>
-  <ellipse cx="9.75" cy="5" rx="2.5" ry="4" fill="#FF9800" opacity="0.85"/>
-  <ellipse cx="9.75" cy="4.2" rx="1.3" ry="2.3" fill="#FFD54F"/>
-  <ellipse cx="9.75" cy="3.5" rx="0.5" ry="1" fill="#FFF9C4"/>
-  <ellipse cx="18.25" cy="5" rx="2.5" ry="4" fill="#FF9800" opacity="0.85"/>
-  <ellipse cx="18.25" cy="4.2" rx="1.3" ry="2.3" fill="#FFD54F"/>
-  <ellipse cx="18.25" cy="3.5" rx="0.5" ry="1" fill="#FFF9C4"/>
-</svg>`;
-
-const SVG_MOON = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="#5C6BC0"/>
-  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="url(#mg)"/>
-  <defs><linearGradient id="mg" x1="6" y1="3" x2="18" y2="21"><stop stop-color="#7986CB"/><stop offset="1" stop-color="#3949AB"/></linearGradient></defs>
-  <circle cx="7" cy="7.5" r="0.7" fill="#FFD54F"/>
-  <circle cx="5" cy="12" r="0.5" fill="#FFD54F" opacity="0.7"/>
-  <circle cx="9" cy="17" r="0.6" fill="#FFD54F" opacity="0.8"/>
-</svg>`;
-
-const SVG_PLUG = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-  <rect x="7" y="2" width="2.5" height="6" rx="1" fill="#66BB6A"/>
-  <rect x="14.5" y="2" width="2.5" height="6" rx="1" fill="#66BB6A"/>
-  <rect x="5" y="7" width="14" height="8" rx="3" fill="#43A047"/>
-  <rect x="10" y="15" width="4" height="3" rx="1" fill="#388E3C"/>
-  <rect x="8" y="18" width="8" height="3" rx="1.5" fill="#2E7D32"/>
-</svg>`;
-
-const SVG_MEALS = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-  <ellipse cx="12" cy="14" rx="8" ry="6" fill="#8D6E63" opacity="0.3"/>
-  <ellipse cx="12" cy="13" rx="7.5" ry="5.5" fill="none" stroke="#A1887F" stroke-width="1"/>
-  <path d="M7 3v7c0 1.5 1 2.5 2 2.5S11 11.5 11 10V3" stroke="#FFB74D" stroke-width="1.2" stroke-linecap="round"/>
-  <line x1="9" y1="3" x2="9" y2="7" stroke="#FFB74D" stroke-width="1.2" stroke-linecap="round"/>
-  <path d="M16 3c0 0 2 1.5 2 4s-2 3.5-2 3.5v9" stroke="#90A4AE" stroke-width="1.3" stroke-linecap="round"/>
-</svg>`;
-
 const AUTO_ENTITIES = {
   show_times_entity: (p) => `binary_sensor.${p}_mostrar_horarios`,
   modo_shabat_entity: (p) => `switch.${p}_modo_shabat`,
@@ -84,7 +46,8 @@ const CARD_CSS = `
     min-width: 0;
   }
   .time-icon {
-    font-size: 22px;
+    color: var(--accent);
+    --mdc-icon-size: 26px;
     line-height: 1;
     flex: 0 0 auto;
   }
@@ -136,8 +99,9 @@ const CARD_CSS = `
     transition: width 500ms linear;
   }
   .mode-icon {
-    font-size: 18px;
+    --mdc-icon-size: 20px;
     line-height: 1;
+    color: var(--accent);
     flex: 0 0 auto;
   }
   .mode-label {
@@ -508,14 +472,14 @@ class DiraShabatCard extends HTMLElement {
       <ha-card>
         <div class="times-row">
           <div class="time-block">
-            <span class="time-icon">${SVG_CANDLES}</span>
+            <span class="time-icon"><ha-icon icon="mdi:candle"></ha-icon></span>
             <div class="time-text">
               <span class="time-label">${t.candle_lighting}${candleWeekday ? ` (${candleWeekday})` : ""}</span>
               <span class="time-value">${candleTime}</span>
             </div>
           </div>
           <div class="time-block">
-            <span class="time-icon">${SVG_MOON}</span>
+            <span class="time-icon"><ha-icon icon="mdi:moon-waning-crescent"></ha-icon></span>
             <div class="time-text">
               <span class="time-label">${t.ends}${havdalahWeekday ? ` (${havdalahWeekday})` : ""}</span>
               <span class="time-value">${havdalahTime}</span>
@@ -524,14 +488,14 @@ class DiraShabatCard extends HTMLElement {
         </div>
 
         <div class="mode-row ${modoOn ? "on" : ""}" id="mode-toggle" title="${t.hold_hint}">
-          <span class="mode-icon">${SVG_PLUG}</span>
+          <span class="mode-icon"><ha-icon icon="mdi:power-plug"></ha-icon></span>
           <span class="mode-label">${t.shabbat_mode}</span>
           <span class="mode-status">${modoOn ? t.on : t.off}</span>
         </div>
 
         ${modoOn ? `
         <div class="meals-header">
-          <span class="mode-icon">${SVG_MEALS}</span>
+          <span class="mode-icon"><ha-icon icon="mdi:silverware-fork-knife"></ha-icon></span>
           <span class="meals-title">${t.meals}</span>
         </div>
         <div class="meals-row" style="--meal-count: ${mealItems.length};">
