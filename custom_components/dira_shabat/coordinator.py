@@ -111,6 +111,9 @@ def _has_issur_melacha(check_date: date, diaspora: bool) -> dict[str, Any]:
 class DiraShabatCoordinator(DataUpdateCoordinator):
     """Coordinator that listens to Jewish Calendar entities and calculates period days."""
 
+    # Hours to force a recalculation (covers day transitions and key moments)
+    CHECKPOINT_HOURS = (6, 12, 17)
+
     def __init__(
         self, hass: HomeAssistant, entry_id: str, diaspora: bool = True
     ) -> None:
@@ -124,6 +127,7 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         self.entry_id = entry_id
         self.diaspora = diaspora
         self._unsub_listeners: list = []
+        self._unsub_checkpoints: list = []
 
     async def async_setup(self) -> None:
         """Set up state change listeners for Jewish Calendar entities."""
@@ -149,10 +153,31 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
                 )
             )
 
+        # Schedule daily checkpoints at key hours (06:00, 12:00, 17:00)
+        # Ensures correct state even if HA restarts or misses an event
+        self._schedule_checkpoints()
+
+    def _schedule_checkpoints(self) -> None:
+        """Schedule forced recalculations at checkpoint hours."""
+        from homeassistant.helpers.event import async_track_time_change
+
+        @callback
+        def _checkpoint(now):
+            _LOGGER.debug("Checkpoint recalculation at %s", now.strftime("%H:%M"))
+            self.async_set_updated_data(self._calculate_data())
+
+        for hour in self.CHECKPOINT_HOURS:
+            self._unsub_checkpoints.append(
+                async_track_time_change(self.hass, _checkpoint, hour=hour, minute=0, second=0)
+            )
+
     async def async_shutdown(self) -> None:
         """Clean up listeners."""
         for unsub in self._unsub_listeners:
             unsub()
+        for unsub in self._unsub_checkpoints:
+            unsub()
+        self._unsub_checkpoints.clear()
         self._unsub_listeners.clear()
 
     async def _async_update_data(self) -> dict[str, Any]:
