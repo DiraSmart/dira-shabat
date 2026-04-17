@@ -32,27 +32,24 @@ _LOGGER = logging.getLogger(__name__)
 def _next_shabbat_mevarchim(today: date, diaspora: bool) -> dict[str, Any]:
     """Find the next Shabat Mevarchim and whether we're in the week leading to it.
 
-    Shabat Mevarchim is the last Shabat before Rosh Chodesh, except before
-    Tishrei (Rosh Hashaná). We consider "the week" as Sunday through Shabat.
+    Shabat Mevarchim is the last Shabat before Rosh Chodesh.
+    We consider "the week" as Sunday through Shabat.
+    Note: traditionally not said before Tishrei, but we still report it.
     """
-    # Find the next Rosh Chodesh (1st of next Hebrew month)
-    # Start checking from tomorrow up to 30 days ahead
     rosh_chodesh_date = None
     rosh_chodesh_month = ""
+    is_tishrei = False
     for offset in range(1, 31):
         check = today + timedelta(days=offset)
         info = HDateInfo(check, diaspora)
         for h in info.holidays:
             if h.name == "rosh_chodesh":
-                # Skip Tishrei (no Mevarchim before Rosh Hashaná)
                 hd = info.hdate
                 if hasattr(hd, 'month') and hasattr(hd.month, 'name'):
                     month_name = str(hd.month.name).replace("_", " ").title()
                 else:
                     month_name = str(hd)
-                # Tishrei = month 7 in hdate, but let's check by name
-                if "tishrei" in month_name.lower():
-                    continue
+                is_tishrei = "tishrei" in month_name.lower()
                 rosh_chodesh_date = check
                 rosh_chodesh_month = month_name
                 break
@@ -82,6 +79,7 @@ def _next_shabbat_mevarchim(today: date, diaspora: bool) -> dict[str, Any]:
         "month_name": rosh_chodesh_month,
         "days_until": days_until,
         "is_today": today == shabat_mevarchim,
+        "is_tishrei": is_tishrei,
     }
 
 

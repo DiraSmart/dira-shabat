@@ -263,4 +263,5 @@ class DiraShabatMevarchimSensor(CoordinatorEntity, BinarySensorEntity):
             "mevarchim_date": mevarchim.get("mevarchim_date", ""),
             "days_until": mevarchim.get("days_until", 0),
             "is_today": mevarchim.get("is_today", False),
+            "is_tishrei": mevarchim.get("is_tishrei", False),
         }
