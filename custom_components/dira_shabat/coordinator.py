@@ -204,13 +204,24 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         period_days = self._calculate_period_days(candle_lighting_dt)
 
         # Calculate current day number
+        # Day transitions at 06:00 AM so automations know about "tonight"
+        # before sunset. Day 1 starts at candle lighting, day 2+ at 06:00.
         current_day = 0
         current_day_name = ""
         if is_issur and candle_lighting_dt:
             now = dt_util.now()
-            hours_since = (now - candle_lighting_dt).total_seconds() / 3600
-            if hours_since >= 0:
-                current_day = min(int(hours_since // 24) + 1, len(period_days))
+            if now >= candle_lighting_dt:
+                # First morning after candle lighting = day 1's morning
+                first_morning_6am = (candle_lighting_dt + timedelta(days=1)).replace(
+                    hour=6, minute=0, second=0, microsecond=0
+                )
+                if now < first_morning_6am:
+                    current_day = 1
+                else:
+                    # Each subsequent day starts at 06:00 AM
+                    days_since = (now - first_morning_6am).days + 2
+                    current_day = min(days_since, len(period_days))
+
                 if 0 < current_day <= len(period_days):
                     current_day_name = period_days[current_day - 1].get(
                         "day_name", ""
