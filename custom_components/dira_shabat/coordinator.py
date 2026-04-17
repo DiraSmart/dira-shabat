@@ -226,27 +226,35 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         # Calculate period days using hdate
         period_days = self._calculate_period_days(candle_lighting_dt)
 
-        # Calculate current day number
-        # Day transitions at 06:00 AM so automations know about "tonight"
-        # before sunset. Day 1 starts at candle lighting, day 2+ at 06:00.
-        current_day = 0
+        # Calculate current day numbers for cena and almuerzo separately.
+        # Cena transitions at 06:00 AM (need to know about TONIGHT's dinner).
+        # Almuerzo stays one day behind (TODAY's lunch = previous cena day).
+        #
+        # Example (Shabat + Jag):
+        #   Fri 18:10 (candles): cena=1 almuerzo=1
+        #   Sat 06:00:           cena=2 almuerzo=1 (lunch today=Sat=day1)
+        #   Sat 20:00:           cena=2 almuerzo=1
+        #   Sun 06:00:           cena=3 almuerzo=2 (lunch today=Sun=day2)
+        current_day_cena = 0
+        current_day_almuerzo = 0
         current_day_name = ""
         if is_issur and candle_lighting_dt:
             now = dt_util.now()
             if now >= candle_lighting_dt:
-                # First morning after candle lighting = day 1's morning
                 first_morning_6am = (candle_lighting_dt + timedelta(days=1)).replace(
                     hour=6, minute=0, second=0, microsecond=0
                 )
                 if now < first_morning_6am:
-                    current_day = 1
+                    current_day_cena = 1
                 else:
-                    # Each subsequent day starts at 06:00 AM
                     days_since = (now - first_morning_6am).days + 2
-                    current_day = min(days_since, len(period_days))
+                    current_day_cena = min(days_since, len(period_days))
 
-                if 0 < current_day <= len(period_days):
-                    current_day_name = period_days[current_day - 1].get(
+                # Almuerzo is one day behind cena (today's lunch, not tonight's)
+                current_day_almuerzo = max(1, current_day_cena - 1)
+
+                if 0 < current_day_cena <= len(period_days):
+                    current_day_name = period_days[current_day_cena - 1].get(
                         "day_name", ""
                     )
 
@@ -298,7 +306,9 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
             "tomorrow_issur": tomorrow_issur,
             "ultimo_dia": ultimo_dia,
             "show_card": show_card,
-            "current_day": current_day,
+            "current_day": current_day_cena,
+            "current_day_cena": current_day_cena,
+            "current_day_almuerzo": current_day_almuerzo,
             "current_day_name": current_day_name,
             "mevarchim": mevarchim,
         }

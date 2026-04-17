@@ -139,17 +139,22 @@ class DiraShabatMealTodaySensor(CoordinatorEntity, BinarySensorEntity):
         self._attr_icon = "mdi:food-turkey" if meal_type == "cena" else "mdi:food-takeout-box"
 
     @property
+    def _current_day(self) -> int:
+        """Return the relevant day number for this meal type."""
+        if not self.coordinator.data:
+            return 0
+        # Cena uses current_day_cena (transitions 06:00 = tonight's dinner)
+        # Almuerzo uses current_day_almuerzo (stays behind = today's lunch)
+        key = f"current_day_{self._meal_type}"
+        return self.coordinator.data.get(key, 0)
+
+    @property
     def is_on(self) -> bool | None:
         """Return true if the meal switch for the current day is on."""
-        if not self.coordinator.data:
+        day = self._current_day
+        if day == 0:
             return False
-
-        current_day = self.coordinator.data.get("current_day", 0)
-        if current_day == 0:
-            return False
-
-        # Check the switch for the current day
-        switch_entity = f"switch.{DOMAIN}_dia_{current_day}_{self._meal_type}"
+        switch_entity = f"switch.{DOMAIN}_dia_{day}_{self._meal_type}"
         state = self.hass.states.get(switch_entity)
         if state is None:
             return False
@@ -161,7 +166,7 @@ class DiraShabatMealTodaySensor(CoordinatorEntity, BinarySensorEntity):
         if not self.coordinator.data:
             return {}
         return {
-            "current_day": self.coordinator.data.get("current_day", 0),
+            "current_day": self._current_day,
             "current_day_name": self.coordinator.data.get("current_day_name", ""),
             "issur_melacha": self.coordinator.data.get("issur_melacha", False),
         }
