@@ -6,6 +6,7 @@ from datetime import datetime, date, timedelta
 from typing import Any
 
 from hdate import HDateInfo
+from hdate.holidays import HolidayTypes
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
@@ -38,25 +39,9 @@ def _has_issur_melacha(check_date: date, diaspora: bool) -> dict[str, Any]:
 
     info = HDateInfo(check_date, diaspora)
 
-    # Get holiday info
-    holiday_name = ""
-    is_yom_tov = False
-
     holidays = info.holidays
-    if holidays:
-        holiday_name = str(holidays[0]) if holidays else ""
-        # Check if any holiday has issur melacha
-        for h in holidays:
-            h_str = str(h).lower()
-            # Yom Tov holidays with issur melacha
-            if any(kw in h_str for kw in [
-                "rosh hashana", "yom kippur", "sukkot i", "shmini atzeret",
-                "simchat torah", "pesach i", "pesach ii", "shavuot",
-                "pesach vii", "pesach viii",
-            ]):
-                is_yom_tov = True
-                break
-
+    holiday_name = str(holidays[0]) if holidays else ""
+    is_yom_tov = any(h.type == HolidayTypes.YOM_TOV for h in holidays)
     has_issur = is_shabbat or is_yom_tov
 
     return {
