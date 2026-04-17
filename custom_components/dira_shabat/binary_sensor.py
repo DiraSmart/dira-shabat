@@ -43,6 +43,7 @@ async def async_setup_entry(
         DiraShabatCenaHoySensor(coordinator, entry, language),
         DiraShabatAlmuerzoHoySensor(coordinator, entry, language),
         DiraShabatUltimoDiaSensor(coordinator, entry, language),
+        DiraShabatMevarchimSensor(coordinator, entry, language),
     ])
 
 
@@ -214,3 +215,52 @@ class DiraShabatUltimoDiaSensor(CoordinatorEntity, BinarySensorEntity):
         if not self.coordinator.data:
             return False
         return self.coordinator.data.get("ultimo_dia", False)
+
+
+class DiraShabatMevarchimSensor(CoordinatorEntity, BinarySensorEntity):
+    """Binary sensor: is this the week of Shabat Mevarchim?
+
+    ON from Sunday through the Shabat Mevarchim itself.
+    Attributes include the month name being blessed and days until.
+    """
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: DiraShabatCoordinator,
+        entry: ConfigEntry,
+        language: str,
+    ) -> None:
+        """Initialize the binary sensor."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._language = language
+        self._attr_unique_id = f"{entry.entry_id}_mevarchim"
+        self._attr_device_info = _device_info(entry)
+        if language == "es":
+            self._attr_name = "Shabat Mevarjim"
+        else:
+            self._attr_name = "Shabbat Mevarchim"
+        self._attr_icon = "mdi:calendar-star"
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return true if we are in the week of Shabat Mevarchim."""
+        if not self.coordinator.data:
+            return False
+        mevarchim = self.coordinator.data.get("mevarchim", {})
+        return mevarchim.get("is_mevarchim_week", False)
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Return month name, date, and days until."""
+        if not self.coordinator.data:
+            return {}
+        mevarchim = self.coordinator.data.get("mevarchim", {})
+        return {
+            "month_name": mevarchim.get("month_name", ""),
+            "mevarchim_date": mevarchim.get("mevarchim_date", ""),
+            "days_until": mevarchim.get("days_until", 0),
+            "is_today": mevarchim.get("is_today", False),
+        }

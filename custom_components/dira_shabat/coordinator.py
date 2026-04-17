@@ -29,6 +29,62 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _next_shabbat_mevarchim(today: date, diaspora: bool) -> dict[str, Any]:
+    """Find the next Shabat Mevarchim and whether we're in the week leading to it.
+
+    Shabat Mevarchim is the last Shabat before Rosh Chodesh, except before
+    Tishrei (Rosh Hashaná). We consider "the week" as Sunday through Shabat.
+    """
+    # Find the next Rosh Chodesh (1st of next Hebrew month)
+    # Start checking from tomorrow up to 30 days ahead
+    rosh_chodesh_date = None
+    rosh_chodesh_month = ""
+    for offset in range(1, 31):
+        check = today + timedelta(days=offset)
+        info = HDateInfo(check, diaspora)
+        for h in info.holidays:
+            if h.name == "rosh_chodesh":
+                # Skip Tishrei (no Mevarchim before Rosh Hashaná)
+                hd = info.hdate
+                if hasattr(hd, 'month') and hasattr(hd.month, 'name'):
+                    month_name = str(hd.month.name).replace("_", " ").title()
+                else:
+                    month_name = str(hd)
+                # Tishrei = month 7 in hdate, but let's check by name
+                if "tishrei" in month_name.lower():
+                    continue
+                rosh_chodesh_date = check
+                rosh_chodesh_month = month_name
+                break
+        if rosh_chodesh_date:
+            break
+
+    if not rosh_chodesh_date:
+        return {"is_mevarchim_week": False, "mevarchim_date": None, "month_name": ""}
+
+    # Find the Shabat before Rosh Chodesh
+    shabat_mevarchim = rosh_chodesh_date
+    while shabat_mevarchim.weekday() != 5:  # 5 = Saturday
+        shabat_mevarchim -= timedelta(days=1)
+
+    # If we already passed this Shabat, it's not relevant
+    if shabat_mevarchim < today:
+        return {"is_mevarchim_week": False, "mevarchim_date": None, "month_name": ""}
+
+    # "The week" = Sunday before through the Shabat itself
+    sunday_of_week = shabat_mevarchim - timedelta(days=6)  # Sunday
+    is_mevarchim_week = sunday_of_week <= today <= shabat_mevarchim
+    days_until = (shabat_mevarchim - today).days
+
+    return {
+        "is_mevarchim_week": is_mevarchim_week,
+        "mevarchim_date": shabat_mevarchim.isoformat(),
+        "month_name": rosh_chodesh_month,
+        "days_until": days_until,
+        "is_today": today == shabat_mevarchim,
+    }
+
+
 def _has_issur_melacha(check_date: date, diaspora: bool) -> dict[str, Any]:
     """Check if a specific date has issur melacha using hdate.
 
@@ -183,6 +239,9 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
                 hebrew_date[:-5] if len(hebrew_date) > 5 else hebrew_date
             )
 
+        # Shabat Mevarchim
+        mevarchim = _next_shabbat_mevarchim(now.date(), self.diaspora)
+
         # Should show card
         show_card = is_erev or is_issur
 
@@ -207,6 +266,7 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
             "show_card": show_card,
             "current_day": current_day,
             "current_day_name": current_day_name,
+            "mevarchim": mevarchim,
         }
 
     def _calculate_period_days(
