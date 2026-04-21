@@ -12,6 +12,17 @@ from typing import Any
 from hdate import HDateInfo, Location, Zmanim
 from hdate.holidays import HolidayTypes
 
+# Religious holiday types to surface (exclude Israeli national/memorial/modern)
+RELIGIOUS_TYPES = frozenset({
+    HolidayTypes.YOM_TOV,
+    HolidayTypes.EREV_YOM_TOV,
+    HolidayTypes.HOL_HAMOED,
+    HolidayTypes.MELACHA_PERMITTED_HOLIDAY,
+    HolidayTypes.FAST_DAY,
+    HolidayTypes.MINOR_HOLIDAY,
+    HolidayTypes.ROSH_CHODESH,
+})
+
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
@@ -53,9 +64,9 @@ def _has_issur_melacha(check_date: date, diaspora: bool) -> dict[str, Any]:
     """Check if a specific date has issur melacha using hdate."""
     is_shabbat = check_date.weekday() == 5  # Saturday
     info = HDateInfo(check_date, diaspora)
-    holidays = info.holidays
-    holiday_name = str(holidays[0]) if holidays else ""
-    is_yom_tov = any(h.type == HolidayTypes.YOM_TOV for h in holidays)
+    religious = [h for h in info.holidays if h.type in RELIGIOUS_TYPES]
+    holiday_name = ", ".join(str(h) for h in religious)
+    is_yom_tov = any(h.type == HolidayTypes.YOM_TOV for h in religious)
     has_issur = is_shabbat or is_yom_tov
     return {
         "is_shabbat": is_shabbat,
@@ -235,11 +246,11 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         is_erev = zmanim_today.erev_shabbat_chag(now)
         is_motzei = self._is_motzei(now, havdalah_dt, is_issur, is_erev)
 
-        # Holiday info
-        holidays = info.holidays
-        holiday_name = str(holidays[0]) if holidays else ""
-        holiday_id = holidays[0].name if holidays else ""
-        is_yom_tov = any(h.type == HolidayTypes.YOM_TOV for h in holidays)
+        # Holiday info — filter to religious types and combine if multiple
+        religious = [h for h in info.holidays if h.type in RELIGIOUS_TYPES]
+        holiday_name = ", ".join(str(h) for h in religious)
+        holiday_id = ", ".join(h.name for h in religious)
+        is_yom_tov = any(h.type == HolidayTypes.YOM_TOV for h in religious)
 
         # Status
         if is_issur and is_yom_tov:
