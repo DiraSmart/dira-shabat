@@ -7,6 +7,7 @@ from typing import Any
 
 from hdate import HDateInfo, Location, Zmanim
 from hdate.holidays import HolidayTypes
+from hdate.translator import set_language
 
 # Religious holiday types to surface (exclude Israeli national/memorial/modern)
 FAST_IDS = frozenset({
@@ -218,6 +219,7 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         self.havdalah_offset = havdalah_offset
         self._unsub_checkpoints: list = []
         self._location = self._build_location(hass)
+        set_language("en")
 
     def _build_location(self, hass: HomeAssistant) -> Location:
         """Build an hdate Location from HA's configuration."""
@@ -269,6 +271,7 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
 
     def _calculate_data(self) -> dict[str, Any]:
         """Calculate all Shabbat/holiday data for the current moment."""
+        set_language("en")
         now = dt_util.now()
         today = now.date()
         info = HDateInfo(today, self.diaspora)
