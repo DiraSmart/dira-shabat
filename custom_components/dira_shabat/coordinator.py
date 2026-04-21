@@ -22,6 +22,13 @@ MAJOR_FAST_IDS = frozenset({"tisha_bav", "yom_kippur"})
 # Approximate minutes after sunset for tzet hakochavim (stars appearing)
 TZET_OFFSET_MIN = 20
 
+
+def _to_dt(zman: Any) -> datetime | None:
+    """Unwrap an hdate Zman object to a plain datetime (returns None safely)."""
+    if zman is None:
+        return None
+    return getattr(zman, "local", zman)
+
 RELIGIOUS_TYPES = frozenset({
     HolidayTypes.YOM_TOV,
     HolidayTypes.EREV_YOM_TOV,
@@ -92,18 +99,15 @@ def _upcoming_fast(
         end_dt = None
 
         if fast.name == "yom_kippur":
-            # Start at candle lighting of erev, end at havdalah
-            start_dt = zmanim_for(check - timedelta(days=1)).candle_lighting
-            end_dt = zmanim_today.havdalah
+            start_dt = _to_dt(zmanim_for(check - timedelta(days=1)).candle_lighting)
+            end_dt = _to_dt(zmanim_today.havdalah)
         elif fast.name == "tisha_bav":
-            # Start at shkia of previous day, end at stars (~20 min after shkia)
-            start_dt = zmanim_for(check - timedelta(days=1)).shkia
-            shkia_today = zmanim_today.shkia
+            start_dt = _to_dt(zmanim_for(check - timedelta(days=1)).shkia)
+            shkia_today = _to_dt(zmanim_today.shkia)
             end_dt = shkia_today + timedelta(minutes=TZET_OFFSET_MIN) if shkia_today else None
         else:
-            # Minor fast: alot hashachar → stars
-            start_dt = zmanim_today.alot_hashachar
-            shkia_today = zmanim_today.shkia
+            start_dt = _to_dt(zmanim_today.alot_hashachar)
+            shkia_today = _to_dt(zmanim_today.shkia)
             end_dt = shkia_today + timedelta(minutes=TZET_OFFSET_MIN) if shkia_today else None
 
         return {
@@ -277,14 +281,14 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
 
         # Candle lighting = zmanim of the day BEFORE period_start (erev)
         candle_date = period_start - timedelta(days=1)
-        candle_lighting_dt = self._zmanim(candle_date).candle_lighting
-        havdalah_dt = self._zmanim(period_end).havdalah
+        candle_lighting_dt = _to_dt(self._zmanim(candle_date).candle_lighting)
+        havdalah_dt = _to_dt(self._zmanim(period_end).havdalah)
 
         # Shabbat-specific candle lighting & havdalah
         upcoming_shabbat = info.upcoming_shabbat
         shabbat_date = upcoming_shabbat.gdate
-        shabbat_candle_dt = self._zmanim(shabbat_date - timedelta(days=1)).candle_lighting
-        shabbat_havdalah_dt = self._zmanim(shabbat_date).havdalah
+        shabbat_candle_dt = _to_dt(self._zmanim(shabbat_date - timedelta(days=1)).candle_lighting)
+        shabbat_havdalah_dt = _to_dt(self._zmanim(shabbat_date).havdalah)
 
         if candle_lighting_dt:
             candle_lighting_dt = dt_util.as_local(candle_lighting_dt)
