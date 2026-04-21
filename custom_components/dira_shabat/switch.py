@@ -105,17 +105,19 @@ class DiraShabatModeSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
         return self._is_on
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the switch on."""
+        """Turn the switch on (blocked while vacation mode is active)."""
+        vacation = self.hass.states.get(f"switch.{DOMAIN}_vacation_mode")
+        if vacation and vacation.state == "on":
+            _LOGGER.warning("Cannot enable Shabbat mode: vacation mode is active")
+            return
         self._is_on = True
         self.async_write_ha_state()
-        # Sync meal switches
         await self._sync_meal_switches(True)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
         self._is_on = False
         self.async_write_ha_state()
-        # Sync meal switches
         await self._sync_meal_switches(False)
 
     async def _sync_meal_switches(self, state: bool) -> None:
