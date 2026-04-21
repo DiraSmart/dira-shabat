@@ -191,7 +191,6 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         erev_shabbat_hag = self._get_state(JC_EREV_SHABBAT_HAG)
         candle_lighting_str = self._get_state(JC_CANDLE_LIGHTING)
         havdalah_str = self._get_state(JC_HAVDALAH)
-        shabbat_havdalah_str = self._get_state(JC_SHABBAT_HAVDALAH)
         holiday_name = self._get_state(JC_HOLIDAY)
         hebrew_date = self._get_state(JC_DATE)
 
@@ -267,11 +266,11 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         # Is this the last day?
         ultimo_dia = is_issur and not tomorrow_info["has_issur"]
 
-        # Check if Shabat/Hag ends today
+        # Check if Shabat/Hag ends today (within next 6h and we're in issur)
         ends_today = False
-        if havdalah_dt:
+        if havdalah_dt and is_issur:
             time_until = (havdalah_dt - now).total_seconds() / 3600
-            if 0 < time_until < 6 and shabbat_havdalah_str == havdalah_str:
+            if 0 < time_until < 6:
                 ends_today = True
 
         # Hebrew date without year
