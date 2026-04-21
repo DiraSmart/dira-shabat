@@ -11,19 +11,20 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState, HomeAssistant, callback
-from homeassistant.helpers.event import async_track_state_change_event
-
 from .const import (
+    CONF_CANDLE_LIGHTING_OFFSET,
     CONF_DEFAULT_ALMUERZO,
     CONF_DEFAULT_CENA,
     CONF_DIASPORA,
+    CONF_HAVDALAH_OFFSET,
     CONF_RESET_DELAY,
     DEFAULT_ALMUERZO,
+    DEFAULT_CANDLE_LIGHTING_OFFSET,
     DEFAULT_CENA,
     DEFAULT_DIASPORA,
+    DEFAULT_HAVDALAH_OFFSET,
     DEFAULT_RESET_DELAY,
     DOMAIN,
-    JC_ISSUR_MELACHA,
     MAX_PERIOD_DAYS,
     PLATFORMS,
 )
@@ -128,19 +129,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN]["frontend_registered"] = True
 
     diaspora = entry.data.get(CONF_DIASPORA, DEFAULT_DIASPORA)
-    coordinator = DiraShabatCoordinator(hass, entry.entry_id, diaspora=diaspora)
+    candle_offset = entry.data.get(CONF_CANDLE_LIGHTING_OFFSET, DEFAULT_CANDLE_LIGHTING_OFFSET)
+    havdalah_offset = entry.data.get(CONF_HAVDALAH_OFFSET, DEFAULT_HAVDALAH_OFFSET)
+    coordinator = DiraShabatCoordinator(
+        hass,
+        entry.entry_id,
+        diaspora=diaspora,
+        candle_offset=candle_offset,
+        havdalah_offset=havdalah_offset,
+    )
 
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
         "unsub_listeners": [],
+        "prev_issur": None,
     }
 
-    # Wait for HA to be fully started before setting up listeners
+    # Wait for HA to be fully started before wiring the reset listener
     if hass.state is CoreState.running:
-        await _async_setup_listeners(hass, entry, coordinator)
+        _setup_issur_listener(hass, entry, coordinator)
     else:
         async def _on_started(event):
-            await _async_setup_listeners(hass, entry, coordinator)
+            _setup_issur_listener(hass, entry, coordinator)
 
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _on_started)
 
@@ -154,33 +164,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def _async_setup_listeners(
+def _setup_issur_listener(
     hass: HomeAssistant,
     entry: ConfigEntry,
     coordinator: DiraShabatCoordinator,
 ) -> None:
-    """Set up state change listeners for automation logic."""
+    """Listen to coordinator updates; fire reset when issur flips on→off."""
     reset_delay = entry.data.get(CONF_RESET_DELAY, DEFAULT_RESET_DELAY)
 
     @callback
-    def _async_issur_melacha_changed(event):
-        """Handle issur melacha state changes for auto-reset."""
-        new_state = event.data.get("new_state")
-        old_state = event.data.get("old_state")
+    def _on_update():
+        data = coordinator.data or {}
+        current = bool(data.get("issur_melacha", False))
+        entry_data = hass.data[DOMAIN][entry.entry_id]
+        prev = entry_data.get("prev_issur")
+        entry_data["prev_issur"] = current
 
-        if not new_state or not old_state:
-            return
-
-        if old_state.state == "on" and new_state.state == "off":
-            # Issur melacha ended - schedule reset after delay
+        if prev is True and current is False:
             _LOGGER.info(
                 "Issur melacha ended. Scheduling reset in %s seconds", reset_delay
             )
             hass.async_create_task(_async_reset_after_delay(hass, entry, reset_delay))
 
-    unsub = async_track_state_change_event(
-        hass, [JC_ISSUR_MELACHA], _async_issur_melacha_changed
-    )
+    unsub = coordinator.async_add_listener(_on_update)
     hass.data[DOMAIN][entry.entry_id]["unsub_listeners"].append(unsub)
 
 
@@ -191,8 +197,8 @@ async def _async_reset_after_delay(
     await asyncio.sleep(delay)
 
     # Verify issur melacha is still off (wasn't a transient state)
-    issur_state = hass.states.get(JC_ISSUR_MELACHA)
-    if issur_state and issur_state.state == "on":
+    coordinator: DiraShabatCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    if (coordinator.data or {}).get("issur_melacha"):
         _LOGGER.info("Issur melacha came back on, skipping reset")
         return
 

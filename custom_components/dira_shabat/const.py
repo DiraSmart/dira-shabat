@@ -11,6 +11,8 @@ CONF_DEFAULT_ALMUERZO = "default_almuerzo"
 CONF_RESET_DELAY = "reset_delay"
 CONF_LANGUAGE = "language"
 CONF_DIASPORA = "diaspora"
+CONF_CANDLE_LIGHTING_OFFSET = "candle_lighting_offset"
+CONF_HAVDALAH_OFFSET = "havdalah_offset"
 
 # Defaults
 DEFAULT_DIASPORA = True
@@ -18,16 +20,8 @@ DEFAULT_CENA = True
 DEFAULT_ALMUERZO = True
 DEFAULT_RESET_DELAY = 30
 DEFAULT_LANGUAGE = "es"
-
-# Jewish Calendar entity IDs
-JC_ISSUR_MELACHA = "binary_sensor.jewish_calendar_issur_melacha_in_effect"
-JC_EREV_SHABBAT_HAG = "binary_sensor.jewish_calendar_erev_shabbat_hag"
-JC_CANDLE_LIGHTING = "sensor.jewish_calendar_upcoming_candle_lighting"
-JC_HAVDALAH = "sensor.jewish_calendar_upcoming_havdalah"
-JC_SHABBAT_CANDLE_LIGHTING = "sensor.jewish_calendar_upcoming_shabbat_candle_lighting"
-JC_SHABBAT_HAVDALAH = "sensor.jewish_calendar_upcoming_shabbat_havdalah"
-JC_HOLIDAY = "sensor.jewish_calendar_holiday"
-JC_DATE = "sensor.jewish_calendar_date"
+DEFAULT_CANDLE_LIGHTING_OFFSET = 18
+DEFAULT_HAVDALAH_OFFSET = 0
 
 # Entity keys
 SWITCH_MODO_SHABAT = "modo_shabat"

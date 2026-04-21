@@ -4,9 +4,9 @@
   "codeowners": ["@jbran"],
   "config_flow": true,
   "dependencies": ["frontend"],
-  "after_dependencies": ["jewish_calendar"],
   "documentation": "https://github.com/jbran/dira-shabat",
-  "iot_class": "local_polling",
+  "iot_class": "calculated",
   "issue_tracker": "https://github.com/jbran/dira-shabat/issues",
-  "version": "1.7.5"
+  "requirements": ["hdate[astral]>=1.1.2"],
+  "version": "2.0.0"
 }

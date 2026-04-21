@@ -44,6 +44,9 @@ async def async_setup_entry(
         DiraShabatAlmuerzoHoySensor(coordinator, entry, language),
         DiraShabatUltimoDiaSensor(coordinator, entry, language),
         DiraShabatMevarchimSensor(coordinator, entry, language),
+        DiraShabatIssurMelachaSensor(coordinator, entry, language),
+        DiraShabatErevSensor(coordinator, entry, language),
+        DiraShabatMotzeiSensor(coordinator, entry, language),
     ])
 
 
@@ -270,3 +273,68 @@ class DiraShabatMevarchimSensor(CoordinatorEntity, BinarySensorEntity):
             "is_today": mevarchim.get("is_today", False),
             "is_tishrei": mevarchim.get("is_tishrei", False),
         }
+
+
+class _FlagSensor(CoordinatorEntity, BinarySensorEntity):
+    """Base for simple boolean sensors backed by a coordinator key."""
+
+    _attr_has_entity_name = True
+    _flag_key = ""
+
+    def __init__(
+        self,
+        coordinator: DiraShabatCoordinator,
+        entry: ConfigEntry,
+        language: str,
+    ) -> None:
+        """Initialize."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._language = language
+        self._attr_device_info = _device_info(entry)
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return the flag value from coordinator data."""
+        if not self.coordinator.data:
+            return False
+        return bool(self.coordinator.data.get(self._flag_key, False))
+
+
+class DiraShabatIssurMelachaSensor(_FlagSensor):
+    """Binary sensor: is issur melacha currently in effect?"""
+
+    _flag_key = "issur_melacha"
+
+    def __init__(self, coordinator, entry, language):
+        """Initialize."""
+        super().__init__(coordinator, entry, language)
+        self._attr_unique_id = f"{entry.entry_id}_issur_melacha"
+        self._attr_name = "Issur Melajá" if language == "es" else "Issur Melacha"
+        self._attr_icon = "mdi:cancel"
+
+
+class DiraShabatErevSensor(_FlagSensor):
+    """Binary sensor: is it erev Shabat/Jag (before candle lighting)?"""
+
+    _flag_key = "erev_shabbat_hag"
+
+    def __init__(self, coordinator, entry, language):
+        """Initialize."""
+        super().__init__(coordinator, entry, language)
+        self._attr_unique_id = f"{entry.entry_id}_erev_shabbat_hag"
+        self._attr_name = "Erev Shabat/Jag" if language == "es" else "Erev Shabbat/Chag"
+        self._attr_icon = "mdi:weather-sunset-down"
+
+
+class DiraShabatMotzeiSensor(_FlagSensor):
+    """Binary sensor: are we in the motzei window (just after havdalah)?"""
+
+    _flag_key = "motzei_shabbat_hag"
+
+    def __init__(self, coordinator, entry, language):
+        """Initialize."""
+        super().__init__(coordinator, entry, language)
+        self._attr_unique_id = f"{entry.entry_id}_motzei_shabbat_hag"
+        self._attr_name = "Motzei Shabat/Jag" if language == "es" else "Motzei Shabbat/Chag"
+        self._attr_icon = "mdi:weather-night"

@@ -3,10 +3,12 @@
     "step": {
       "user": {
         "title": "Dira Shabat Setup",
-        "description": "Configure Shabbat and Holiday management. Requires the Jewish Calendar integration to be installed.",
+        "description": "Configure Shabbat and Holiday management. All times are calculated locally from your Home Assistant location.",
         "data": {
           "language": "Language",
           "diaspora": "Diaspora (2-day Yom Tov)",
+          "candle_lighting_offset": "Candle lighting offset (minutes before sunset)",
+          "havdalah_offset": "Havdalah offset (minutes after sunset)",
           "default_cena": "Dinner always on by default",
           "default_almuerzo": "Lunch always on by default",
           "reset_delay": "Reset delay (seconds after issur melacha ends)"
@@ -24,6 +26,8 @@
         "data": {
           "language": "Language",
           "diaspora": "Diaspora (2-day Yom Tov)",
+          "candle_lighting_offset": "Candle lighting offset (minutes before sunset)",
+          "havdalah_offset": "Havdalah offset (minutes after sunset)",
           "default_cena": "Dinner always on by default",
           "default_almuerzo": "Lunch always on by default",
           "reset_delay": "Reset delay (seconds after issur melacha ends)"
