@@ -23,9 +23,9 @@ DEFAULT_LANGUAGE = "es"
 DEFAULT_CANDLE_LIGHTING_OFFSET = 18
 DEFAULT_HAVDALAH_OFFSET = 0
 
-# Entity keys
-SWITCH_MODO_SHABAT = "modo_shabat"
-SWITCH_FORZAR_MOSTRAR = "forzar_mostrar"
+# Entity keys (English suffixes used for unique_id and entity_id)
+SWITCH_MODO_SHABAT = "shabbat_mode"
+SWITCH_FORZAR_MOSTRAR = "force_show"
 
 # Max days in a period (e.g., 3-day Yom Tov + Shabbat)
 MAX_PERIOD_DAYS = 3
@@ -41,6 +41,36 @@ ICON_SHABBAT_MODE = "mdi:synagogue"
 
 # Platforms
 PLATFORMS = ["switch", "sensor", "binary_sensor"]
+
+# Migration: rename old Spanish unique_id suffixes to English (v2.2+)
+# Key = old suffix, Value = new suffix
+UNIQUE_ID_RENAMES = {
+    # sensors
+    "encendido_velas": "candle_lighting",
+    "finaliza": "havdalah",
+    "estado": "status",
+    "fecha_hebrea": "hebrew_date",
+    "iom_tov": "yom_tov",
+    "dias_totales": "total_days",
+    "dia_actual": "current_day",
+    # binary sensors
+    "mostrar_horarios": "show_times",
+    "cena_hoy": "dinner_today",
+    "almuerzo_hoy": "lunch_today",
+    "ultimo_dia": "last_day",
+    # switches
+    "modo_shabat": "shabbat_mode",
+    "forzar_mostrar": "force_show",
+    "dia_1_cena": "day_1_dinner",
+    "dia_1_almuerzo": "day_1_lunch",
+    "dia_2_cena": "day_2_dinner",
+    "dia_2_almuerzo": "day_2_lunch",
+    "dia_3_cena": "day_3_dinner",
+    "dia_3_almuerzo": "day_3_lunch",
+}
+
+# Internal meal-type → English entity-id suffix
+MEAL_SUFFIX = {"cena": "dinner", "almuerzo": "lunch"}
 
 # Storage key for persisting switch states
 STORAGE_KEY = f"{DOMAIN}_data"

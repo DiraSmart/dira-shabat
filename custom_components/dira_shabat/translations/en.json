@@ -3,12 +3,14 @@
     "step": {
       "user": {
         "title": "Dira Shabat Setup",
-        "description": "Configure Shabbat and Holiday management. Requires the Jewish Calendar integration to be installed.",
+        "description": "All calculations are local based on your Home Assistant location.",
         "data": {
           "language": "Language",
           "diaspora": "Diaspora (2-day Yom Tov)",
-          "default_cena": "Dinner always on by default",
-          "default_almuerzo": "Lunch always on by default",
+          "candle_lighting_offset": "Candle lighting offset (minutes before sunset)",
+          "havdalah_offset": "Havdalah offset (minutes after sunset)",
+          "default_cena": "Dinner on by default",
+          "default_almuerzo": "Lunch on by default",
           "reset_delay": "Reset delay (seconds after issur melacha ends)"
         }
       }
@@ -24,11 +26,55 @@
         "data": {
           "language": "Language",
           "diaspora": "Diaspora (2-day Yom Tov)",
-          "default_cena": "Dinner always on by default",
-          "default_almuerzo": "Lunch always on by default",
+          "candle_lighting_offset": "Candle lighting offset (minutes before sunset)",
+          "havdalah_offset": "Havdalah offset (minutes after sunset)",
+          "default_cena": "Dinner on by default",
+          "default_almuerzo": "Lunch on by default",
           "reset_delay": "Reset delay (seconds after issur melacha ends)"
         }
       }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "candle_lighting": { "name": "Candle lighting" },
+      "havdalah": { "name": "Havdalah" },
+      "shabbat_candle_lighting": { "name": "Shabbat candle lighting" },
+      "shabbat_havdalah": { "name": "Shabbat havdalah" },
+      "status": { "name": "Status" },
+      "hebrew_date": { "name": "Hebrew date" },
+      "yom_tov": { "name": "Yom Tov" },
+      "holiday": { "name": "Holiday" },
+      "holiday_id": { "name": "Holiday ID" },
+      "total_days": { "name": "Total days" },
+      "ends_today": { "name": "Ends today" },
+      "current_day": { "name": "Current day" },
+      "omer": { "name": "Omer" },
+      "parasha": { "name": "Parasha" },
+      "daf_yomi": { "name": "Daf Yomi" },
+      "tehilim": { "name": "Tehillim" },
+      "fast": { "name": "Fast" }
+    },
+    "binary_sensor": {
+      "show_times": { "name": "Show times" },
+      "tomorrow_issur": { "name": "Tomorrow issur melacha" },
+      "dinner_today": { "name": "Dinner today" },
+      "lunch_today": { "name": "Lunch today" },
+      "last_day": { "name": "Last day" },
+      "mevarchim": { "name": "Shabbat Mevarchim" },
+      "issur_melacha": { "name": "Issur melacha" },
+      "erev_shabbat_hag": { "name": "Erev Shabbat/Chag" },
+      "motzei_shabbat_hag": { "name": "Motzei Shabbat/Chag" }
+    },
+    "switch": {
+      "shabbat_mode": { "name": "Shabbat mode" },
+      "force_show": { "name": "Force show" },
+      "day_1_dinner": { "name": "Day 1 - Dinner" },
+      "day_1_lunch": { "name": "Day 1 - Lunch" },
+      "day_2_dinner": { "name": "Day 2 - Dinner" },
+      "day_2_lunch": { "name": "Day 2 - Lunch" },
+      "day_3_dinner": { "name": "Day 3 - Dinner" },
+      "day_3_lunch": { "name": "Day 3 - Lunch" }
     }
   }
 }

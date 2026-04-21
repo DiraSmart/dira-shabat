@@ -12,7 +12,15 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import CONF_LANGUAGE, DEFAULT_LANGUAGE, DEVICE_NAME, DOMAIN, MANUFACTURER, TRANSLATIONS
+from .const import (
+    CONF_LANGUAGE,
+    DEFAULT_LANGUAGE,
+    DEVICE_NAME,
+    DOMAIN,
+    MANUFACTURER,
+    MEAL_SUFFIX,
+    TRANSLATIONS,
+)
 from .coordinator import DiraShabatCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,10 +72,9 @@ class DiraShabatShowTimesSensor(CoordinatorEntity, BinarySensorEntity):
         """Initialize the binary sensor."""
         super().__init__(coordinator)
         self._entry = entry
-        t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
-        self._attr_unique_id = f"{entry.entry_id}_mostrar_horarios"
+        self._attr_unique_id = f"{entry.entry_id}_show_times"
+        self._attr_translation_key = "show_times"
         self._attr_device_info = _device_info(entry)
-        self._attr_name = t["show_times"]
         self._attr_icon = "mdi:eye"
 
     @property
@@ -79,7 +86,7 @@ class DiraShabatShowTimesSensor(CoordinatorEntity, BinarySensorEntity):
         show_card = self.coordinator.data.get("show_card", False)
 
         # Also check force show switch
-        force_show_entity = f"switch.{DOMAIN}_forzar_mostrar"
+        force_show_entity = f"switch.{DOMAIN}_force_show"
         force_state = self.hass.states.get(force_show_entity)
         force_show = force_state and force_state.state == "on"
 
@@ -100,10 +107,9 @@ class DiraShabatTomorrowIssurSensor(CoordinatorEntity, BinarySensorEntity):
         """Initialize the binary sensor."""
         super().__init__(coordinator)
         self._entry = entry
-        t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
         self._attr_unique_id = f"{entry.entry_id}_tomorrow_issur"
+        self._attr_translation_key = "tomorrow_issur"
         self._attr_device_info = _device_info(entry)
-        self._attr_name = t["tomorrow_issur"]
         self._attr_icon = "mdi:calendar-arrow-right"
 
     @property
@@ -134,11 +140,10 @@ class DiraShabatMealTodaySensor(CoordinatorEntity, BinarySensorEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._meal_type = meal_type
-        t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
-        meal_label = t["dinner"] if meal_type == "cena" else t["lunch"]
-        self._attr_unique_id = f"{entry.entry_id}_{meal_type}_hoy"
+        eng_suffix = MEAL_SUFFIX[meal_type]
+        self._attr_unique_id = f"{entry.entry_id}_{eng_suffix}_today"
+        self._attr_translation_key = f"{eng_suffix}_today"
         self._attr_device_info = _device_info(entry)
-        self._attr_name = f"{meal_label} hoy" if language == "es" else f"{meal_label} today"
         self._attr_icon = "mdi:food-turkey" if meal_type == "cena" else "mdi:food-takeout-box"
 
     @property
@@ -157,7 +162,7 @@ class DiraShabatMealTodaySensor(CoordinatorEntity, BinarySensorEntity):
         day = self._current_day
         if day == 0:
             return False
-        switch_entity = f"switch.{DOMAIN}_dia_{day}_{self._meal_type}"
+        switch_entity = f"switch.{DOMAIN}_day_{day}_{MEAL_SUFFIX[self._meal_type]}"
         state = self.hass.states.get(switch_entity)
         if state is None:
             return False
@@ -209,12 +214,9 @@ class DiraShabatUltimoDiaSensor(CoordinatorEntity, BinarySensorEntity):
         """Initialize the binary sensor."""
         super().__init__(coordinator)
         self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}_ultimo_dia"
+        self._attr_unique_id = f"{entry.entry_id}_last_day"
+        self._attr_translation_key = "last_day"
         self._attr_device_info = _device_info(entry)
-        if language == "es":
-            self._attr_name = "Último día"
-        else:
-            self._attr_name = "Last day"
         self._attr_icon = "mdi:clock-end"
 
     @property
@@ -245,11 +247,8 @@ class DiraShabatMevarchimSensor(CoordinatorEntity, BinarySensorEntity):
         self._entry = entry
         self._language = language
         self._attr_unique_id = f"{entry.entry_id}_mevarchim"
+        self._attr_translation_key = "mevarchim"
         self._attr_device_info = _device_info(entry)
-        if language == "es":
-            self._attr_name = "Shabat Mevarjim"
-        else:
-            self._attr_name = "Shabbat Mevarchim"
         self._attr_icon = "mdi:calendar-star"
 
     @property
@@ -310,7 +309,7 @@ class DiraShabatIssurMelachaSensor(_FlagSensor):
         """Initialize."""
         super().__init__(coordinator, entry, language)
         self._attr_unique_id = f"{entry.entry_id}_issur_melacha"
-        self._attr_name = "Issur Melajá" if language == "es" else "Issur Melacha"
+        self._attr_translation_key = "issur_melacha"
         self._attr_icon = "mdi:cancel"
 
 
@@ -323,7 +322,7 @@ class DiraShabatErevSensor(_FlagSensor):
         """Initialize."""
         super().__init__(coordinator, entry, language)
         self._attr_unique_id = f"{entry.entry_id}_erev_shabbat_hag"
-        self._attr_name = "Erev Shabat/Jag" if language == "es" else "Erev Shabbat/Chag"
+        self._attr_translation_key = "erev_shabbat_hag"
         self._attr_icon = "mdi:weather-sunset-down"
 
 
@@ -336,5 +335,5 @@ class DiraShabatMotzeiSensor(_FlagSensor):
         """Initialize."""
         super().__init__(coordinator, entry, language)
         self._attr_unique_id = f"{entry.entry_id}_motzei_shabbat_hag"
-        self._attr_name = "Motzei Shabat/Jag" if language == "es" else "Motzei Shabbat/Chag"
+        self._attr_translation_key = "motzei_shabbat_hag"
         self._attr_icon = "mdi:weather-night"

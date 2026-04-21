@@ -88,9 +88,8 @@ class DiraShabatCandleLightingSensor(DiraShabatBaseSensor):
     def __init__(self, coordinator, entry, language):
         """Initialize."""
         super().__init__(coordinator, entry, language)
-        t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
-        self._attr_unique_id = f"{entry.entry_id}_encendido_velas"
-        self._attr_name = t["candle_lighting"]
+        self._attr_unique_id = f"{entry.entry_id}_candle_lighting"
+        self._attr_translation_key = "candle_lighting"
         self._attr_icon = ICON_CANDLE
 
     @property
@@ -116,9 +115,8 @@ class DiraShabatHavdalahSensor(DiraShabatBaseSensor):
     def __init__(self, coordinator, entry, language):
         """Initialize."""
         super().__init__(coordinator, entry, language)
-        t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
-        self._attr_unique_id = f"{entry.entry_id}_finaliza"
-        self._attr_name = t["ends"]
+        self._attr_unique_id = f"{entry.entry_id}_havdalah"
+        self._attr_translation_key = "havdalah"
         self._attr_icon = ICON_MOON
 
     @property
@@ -144,9 +142,8 @@ class DiraShabatStatusSensor(DiraShabatBaseSensor):
     def __init__(self, coordinator, entry, language):
         """Initialize."""
         super().__init__(coordinator, entry, language)
-        t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
-        self._attr_unique_id = f"{entry.entry_id}_estado"
-        self._attr_name = t["status"]
+        self._attr_unique_id = f"{entry.entry_id}_status"
+        self._attr_translation_key = "status"
         self._attr_icon = ICON_SYNAGOGUE
 
     @property
@@ -175,9 +172,8 @@ class DiraShabatHebrewDateSensor(DiraShabatBaseSensor):
     def __init__(self, coordinator, entry, language):
         """Initialize."""
         super().__init__(coordinator, entry, language)
-        t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
-        self._attr_unique_id = f"{entry.entry_id}_fecha_hebrea"
-        self._attr_name = t["hebrew_date"]
+        self._attr_unique_id = f"{entry.entry_id}_hebrew_date"
+        self._attr_translation_key = "hebrew_date"
         self._attr_icon = "mdi:calendar-star"
 
     @property
@@ -194,8 +190,8 @@ class DiraShabatIomTovSensor(DiraShabatBaseSensor):
     def __init__(self, coordinator, entry, language):
         """Initialize."""
         super().__init__(coordinator, entry, language)
-        self._attr_unique_id = f"{entry.entry_id}_iom_tov"
-        self._attr_name = "Iom Tov"
+        self._attr_unique_id = f"{entry.entry_id}_yom_tov"
+        self._attr_translation_key = "yom_tov"
         self._attr_icon = "mdi:star-david"
 
     @property
@@ -213,7 +209,7 @@ class DiraShabatHolidayIdSensor(DiraShabatBaseSensor):
         """Initialize."""
         super().__init__(coordinator, entry, language)
         self._attr_unique_id = f"{entry.entry_id}_holiday_id"
-        self._attr_name = "Holiday ID"
+        self._attr_translation_key = "holiday_id"
         self._attr_icon = "mdi:tag"
 
     @property
@@ -230,9 +226,8 @@ class DiraShabatTotalDaysSensor(DiraShabatBaseSensor):
     def __init__(self, coordinator, entry, language):
         """Initialize."""
         super().__init__(coordinator, entry, language)
-        t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
-        self._attr_unique_id = f"{entry.entry_id}_dias_totales"
-        self._attr_name = t["total_days"]
+        self._attr_unique_id = f"{entry.entry_id}_total_days"
+        self._attr_translation_key = "total_days"
         self._attr_icon = "mdi:counter"
 
     @property
@@ -258,9 +253,8 @@ class DiraShabatEndsTodaySensor(DiraShabatBaseSensor):
     def __init__(self, coordinator, entry, language):
         """Initialize."""
         super().__init__(coordinator, entry, language)
-        t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
         self._attr_unique_id = f"{entry.entry_id}_ends_today"
-        self._attr_name = t["ends_today"]
+        self._attr_translation_key = "ends_today"
         self._attr_icon = "mdi:clock-end"
 
     @property
@@ -281,9 +275,8 @@ class DiraShabatCurrentDaySensor(DiraShabatBaseSensor):
     def __init__(self, coordinator, entry, language):
         """Initialize."""
         super().__init__(coordinator, entry, language)
-        t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
-        self._attr_unique_id = f"{entry.entry_id}_dia_actual"
-        self._attr_name = f"{t['day']} actual" if language == "es" else "Current day"
+        self._attr_unique_id = f"{entry.entry_id}_current_day"
+        self._attr_translation_key = "current_day"
         self._attr_icon = "mdi:calendar-today"
 
     @property
@@ -326,9 +319,7 @@ class DiraShabatShabbatCandleLightingSensor(DiraShabatBaseSensor):
         """Initialize."""
         super().__init__(coordinator, entry, language)
         self._attr_unique_id = f"{entry.entry_id}_shabbat_candle_lighting"
-        self._attr_name = (
-            "Velas Shabat" if language == "es" else "Shabbat candle lighting"
-        )
+        self._attr_translation_key = "shabbat_candle_lighting"
         self._attr_icon = "mdi:candle"
 
     @property
@@ -352,9 +343,7 @@ class DiraShabatShabbatHavdalahSensor(DiraShabatBaseSensor):
         """Initialize."""
         super().__init__(coordinator, entry, language)
         self._attr_unique_id = f"{entry.entry_id}_shabbat_havdalah"
-        self._attr_name = (
-            "Havdalá Shabat" if language == "es" else "Shabbat havdalah"
-        )
+        self._attr_translation_key = "shabbat_havdalah"
         self._attr_icon = "mdi:moon-waning-crescent"
 
     @property
@@ -378,7 +367,7 @@ class DiraShabatHolidayNameSensor(DiraShabatBaseSensor):
         """Initialize."""
         super().__init__(coordinator, entry, language)
         self._attr_unique_id = f"{entry.entry_id}_holiday"
-        self._attr_name = "Holiday" if language == "en" else "Festividad"
+        self._attr_translation_key = "holiday"
         self._attr_icon = "mdi:party-popper"
 
     @property
@@ -396,7 +385,7 @@ class DiraShabatOmerSensor(DiraShabatBaseSensor):
         """Initialize."""
         super().__init__(coordinator, entry, language)
         self._attr_unique_id = f"{entry.entry_id}_omer"
-        self._attr_name = "Omer" if language == "en" else "Omer"
+        self._attr_translation_key = "omer"
         self._attr_icon = "mdi:counter"
 
     @property
@@ -414,7 +403,7 @@ class DiraShabatParashaSensor(DiraShabatBaseSensor):
         """Initialize."""
         super().__init__(coordinator, entry, language)
         self._attr_unique_id = f"{entry.entry_id}_parasha"
-        self._attr_name = "Parashá" if language == "es" else "Parasha"
+        self._attr_translation_key = "parasha"
         self._attr_icon = "mdi:book-open-page-variant"
 
     @property
@@ -432,7 +421,7 @@ class DiraShabatDafYomiSensor(DiraShabatBaseSensor):
         """Initialize."""
         super().__init__(coordinator, entry, language)
         self._attr_unique_id = f"{entry.entry_id}_daf_yomi"
-        self._attr_name = "Daf Yomi"
+        self._attr_translation_key = "daf_yomi"
         self._attr_icon = "mdi:book-education"
 
     @property
@@ -454,7 +443,7 @@ class DiraShabatTehilimSensor(DiraShabatBaseSensor):
         """Initialize."""
         super().__init__(coordinator, entry, language)
         self._attr_unique_id = f"{entry.entry_id}_tehilim"
-        self._attr_name = "Tehilim" if language == "es" else "Tehillim"
+        self._attr_translation_key = "tehilim"
         self._attr_icon = "mdi:book-open"
 
     @property
@@ -483,7 +472,7 @@ class DiraShabatFastSensor(DiraShabatBaseSensor):
         """Initialize."""
         super().__init__(coordinator, entry, language)
         self._attr_unique_id = f"{entry.entry_id}_fast"
-        self._attr_name = "Ayuno" if language == "es" else "Fast"
+        self._attr_translation_key = "fast"
         self._attr_icon = "mdi:silverware-variant"
 
     @property

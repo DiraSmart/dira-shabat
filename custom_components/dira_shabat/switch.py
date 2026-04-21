@@ -29,6 +29,7 @@ from .const import (
     ICON_SHABBAT_MODE,
     MANUFACTURER,
     MAX_PERIOD_DAYS,
+    MEAL_SUFFIX,
     SWITCH_FORZAR_MOSTRAR,
     SWITCH_MODO_SHABAT,
     TRANSLATIONS,
@@ -94,10 +95,9 @@ class DiraShabatModeSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
         self._entry = entry
         self._language = language
         self._attr_unique_id = f"{entry.entry_id}_{SWITCH_MODO_SHABAT}"
+        self._attr_translation_key = "shabbat_mode"
         self._attr_device_info = _device_info(entry)
         self._attr_icon = ICON_SHABBAT_MODE
-        t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
-        self._attr_name = t["shabbat_mode"]
         self._is_on = True
 
     @property
@@ -122,8 +122,8 @@ class DiraShabatModeSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
     async def _sync_meal_switches(self, state: bool) -> None:
         """Sync all meal switches to match the mode switch."""
         for day_num in range(1, MAX_PERIOD_DAYS + 1):
-            for meal in ("cena", "almuerzo"):
-                entity_id = f"switch.{DOMAIN}_dia_{day_num}_{meal}"
+            for meal in ("dinner", "lunch"):
+                entity_id = f"switch.{DOMAIN}_day_{day_num}_{meal}"
                 entity_state = self.hass.states.get(entity_id)
                 if entity_state:
                     service = "turn_on" if state else "turn_off"
@@ -155,10 +155,9 @@ class DiraShabatForceShowSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
         self._entry = entry
         self._language = language
         self._attr_unique_id = f"{entry.entry_id}_{SWITCH_FORZAR_MOSTRAR}"
+        self._attr_translation_key = "force_show"
         self._attr_device_info = _device_info(entry)
         self._attr_icon = ICON_FORCE_SHOW
-        t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
-        self._attr_name = t["force_show"]
         self._is_on = False
 
     @property
@@ -203,13 +202,14 @@ class DiraShabatMealSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
         self._day_number = day_number
         self._meal_type = meal_type
         self._language = language
-        self._attr_unique_id = f"{entry.entry_id}_dia_{day_number}_{meal_type}"
+        eng_suffix = MEAL_SUFFIX[meal_type]
+        self._attr_unique_id = f"{entry.entry_id}_day_{day_number}_{eng_suffix}"
+        self._attr_translation_key = f"day_{day_number}_{eng_suffix}"
         self._attr_device_info = _device_info(entry)
         self._attr_icon = ICON_FOOD_DINNER if meal_type == "cena" else ICON_FOOD_LUNCH
 
         t = TRANSLATIONS.get(language, TRANSLATIONS["es"])
         meal_label = t["dinner"] if meal_type == "cena" else t["lunch"]
-        self._attr_name = f"{t['day']} {day_number} - {meal_label}"
         self._meal_label = meal_label
 
         # Default state from config
@@ -291,14 +291,4 @@ class DiraShabatMealSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
         if last_state:
             self._is_on = last_state.state == "on"
 
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        # Update name with day info if available
-        if self.coordinator.data:
-            period_days = self.coordinator.data.get("period_days", [])
-            if self._day_number <= len(period_days):
-                day_info = period_days[self._day_number - 1]
-                day_name = day_info.get("day_name", f"Día {self._day_number}")
-                self._attr_name = f"{day_name} - {self._meal_label}"
-        super()._handle_coordinator_update()
+    # Name is handled by translation_key; day info is in attributes.

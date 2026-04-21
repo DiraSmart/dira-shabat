@@ -11,6 +11,8 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState, HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
+
 from .const import (
     CONF_CANDLE_LIGHTING_OFFSET,
     CONF_DEFAULT_ALMUERZO,
@@ -27,6 +29,7 @@ from .const import (
     DOMAIN,
     MAX_PERIOD_DAYS,
     PLATFORMS,
+    UNIQUE_ID_RENAMES,
 )
 from .coordinator import DiraShabatCoordinator
 
@@ -119,9 +122,44 @@ async def _async_install_card(hass: HomeAssistant) -> None:
         _LOGGER.debug("Could not add extra JS URL: %s", err)
 
 
+@callback
+def _migrate_unique_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Rename old Spanish unique_id suffixes to the new English ones.
+
+    Updates both unique_id and entity_id so existing automations referring
+    to the new entity_id pattern start working. Users with custom entity_ids
+    (renamed via UI) keep their custom names but the unique_id still
+    migrates.
+    """
+    registry = er.async_get(hass)
+    entry_id = entry.entry_id
+    for entity in list(registry.entities.values()):
+        if entity.config_entry_id != entry_id:
+            continue
+        old_uid = entity.unique_id
+        prefix = f"{entry_id}_"
+        if not old_uid.startswith(prefix):
+            continue
+        old_suffix = old_uid[len(prefix):]
+        new_suffix = UNIQUE_ID_RENAMES.get(old_suffix)
+        if not new_suffix or new_suffix == old_suffix:
+            continue
+        new_uid = f"{entry_id}_{new_suffix}"
+        # Build the new default entity_id only if the user hasn't customized it
+        platform = entity.entity_id.split(".", 1)[0]
+        default_old_entity_id = f"{platform}.{DOMAIN}_{old_suffix}"
+        updates = {"new_unique_id": new_uid}
+        if entity.entity_id == default_old_entity_id:
+            updates["new_entity_id"] = f"{platform}.{DOMAIN}_{new_suffix}"
+        _LOGGER.info("Migrating %s: %s → %s", entity.entity_id, old_suffix, new_suffix)
+        registry.async_update_entity(entity.entity_id, **updates)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Dira Shabat from a config entry."""
     hass.data.setdefault(DOMAIN, {})
+
+    _migrate_unique_ids(hass, entry)
 
     # Install the Lovelace card automatically
     if not hass.data[DOMAIN].get("frontend_registered"):
@@ -208,15 +246,15 @@ async def _async_reset_after_delay(
     default_almuerzo = entry.data.get(CONF_DEFAULT_ALMUERZO, DEFAULT_ALMUERZO)
 
     # Reset modo shabat to ON
-    modo_entity = f"switch.{DOMAIN}_modo_shabat"
+    modo_entity = f"switch.{DOMAIN}_shabbat_mode"
     await hass.services.async_call(
         "switch", "turn_on", {"entity_id": modo_entity}
     )
 
     # Reset all meal switches to defaults
     for day_num in range(1, MAX_PERIOD_DAYS + 1):
-        cena_entity = f"switch.{DOMAIN}_dia_{day_num}_cena"
-        almuerzo_entity = f"switch.{DOMAIN}_dia_{day_num}_almuerzo"
+        cena_entity = f"switch.{DOMAIN}_day_{day_num}_dinner"
+        almuerzo_entity = f"switch.{DOMAIN}_day_{day_num}_lunch"
 
         cena_service = "turn_on" if default_cena else "turn_off"
         almuerzo_service = "turn_on" if default_almuerzo else "turn_off"

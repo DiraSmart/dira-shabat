@@ -10,11 +10,11 @@ console.info(
 );
 
 const AUTO_ENTITIES = {
-  show_times_entity: (p) => `binary_sensor.${p}_mostrar_horarios`,
-  modo_shabat_entity: (p) => `switch.${p}_modo_shabat`,
-  candle_lighting_entity: (p) => `sensor.${p}_encendido_velas`,
-  havdalah_entity: (p) => `sensor.${p}_finaliza`,
-  total_days_entity: (p) => `sensor.${p}_dias_totales`,
+  show_times_entity: (p) => `binary_sensor.${p}_show_times`,
+  modo_shabat_entity: (p) => `switch.${p}_shabbat_mode`,
+  candle_lighting_entity: (p) => `sensor.${p}_candle_lighting`,
+  havdalah_entity: (p) => `sensor.${p}_havdalah`,
+  total_days_entity: (p) => `sensor.${p}_total_days`,
 };
 
 const CARD_CSS = `
@@ -293,8 +293,8 @@ class DiraShabatCard extends HTMLElement {
     ];
     const prefix = this._config.entity_prefix;
     for (let d = 1; d <= 3; d++) {
-      parts.push(`switch.${prefix}_dia_${d}_cena`);
-      parts.push(`switch.${prefix}_dia_${d}_almuerzo`);
+      parts.push(`switch.${prefix}_day_${d}_dinner`);
+      parts.push(`switch.${prefix}_day_${d}_lunch`);
     }
     return parts
       .map((id) => {
@@ -428,8 +428,8 @@ class DiraShabatCard extends HTMLElement {
       const dayInfo = periodDays[day - 1] || {};
       const dinnerDay = t.days_of_week[dayInfo.dinner_weekday] || dayInfo.dinner_weekday || "";
       const lunchDay = t.days_of_week[dayInfo.lunch_weekday] || dayInfo.lunch_weekday || "";
-      const cenaEntity = `switch.${prefix}_dia_${day}_cena`;
-      const almuerzoEntity = `switch.${prefix}_dia_${day}_almuerzo`;
+      const cenaEntity = `switch.${prefix}_day_${day}_dinner`;
+      const almuerzoEntity = `switch.${prefix}_day_${day}_lunch`;
 
       mealItems.push({
         label: t.dinner,
