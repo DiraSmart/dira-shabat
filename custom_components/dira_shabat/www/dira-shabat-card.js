@@ -163,6 +163,32 @@ const CARD_CSS = `
     text-align: center;
   }
 
+  /* Options section (generic user-renamable switches) */
+  .options-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--divider-color);
+  }
+  .option-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 4px 0;
+  }
+  .option-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   /* ON/OFF pill button */
   .pill {
     display: flex;
@@ -296,6 +322,8 @@ class DiraShabatCard extends HTMLElement {
       parts.push(`switch.${prefix}_day_${d}_dinner`);
       parts.push(`switch.${prefix}_day_${d}_lunch`);
     }
+    parts.push(`switch.${prefix}_option_1`);
+    parts.push(`switch.${prefix}_option_2`);
     return parts
       .map((id) => {
         const s = this._hass.states[id];
@@ -468,6 +496,28 @@ class DiraShabatCard extends HTMLElement {
       )
       .join("");
 
+    // Options (generic user-configurable switches, shown by friendly_name)
+    const optionItems = [1, 2]
+      .map((n) => {
+        const entityId = `switch.${prefix}_option_${n}`;
+        const state = this._getState(entityId);
+        if (!state) return null;
+        const label = state.attributes?.friendly_name || `Option ${n}`;
+        return { entity: entityId, label, on: state.state === "on" };
+      })
+      .filter(Boolean);
+
+    const optionsHTML = optionItems
+      .map(
+        (o) => `
+        <div class="option-row">
+          <span class="option-label">${o.label}</span>
+          <div class="pill ${o.on ? "on" : ""}" data-entity="${o.entity}">${o.on ? t.on : t.off}</div>
+        </div>
+      `,
+      )
+      .join("");
+
     this.shadowRoot.innerHTML = `
       <ha-card>
         <div class="times-row">
@@ -501,6 +551,7 @@ class DiraShabatCard extends HTMLElement {
         <div class="meals-row" style="--meal-count: ${mealItems.length};">
           ${mealsHTML}
         </div>
+        ${optionItems.length ? `<div class="options-section">${optionsHTML}</div>` : ""}
         ` : ""}
       </ha-card>
     `;

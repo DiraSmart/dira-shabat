@@ -50,6 +50,8 @@ async def async_setup_entry(
         DiraShabatVacationSwitch(coordinator, entry, language),
         DiraShabatDefaultMealSwitch(coordinator, entry, language, "cena"),
         DiraShabatDefaultMealSwitch(coordinator, entry, language, "almuerzo"),
+        DiraShabatOptionSwitch(coordinator, entry, language, 1),
+        DiraShabatOptionSwitch(coordinator, entry, language, 2),
     ]
 
     # Create meal switches for each possible day (up to MAX_PERIOD_DAYS)
@@ -370,6 +372,56 @@ class DiraShabatDefaultMealSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity
     @property
     def is_on(self) -> bool:
         """Return whether this meal is enabled by default."""
+        return self._is_on
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn on."""
+        self._is_on = True
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn off."""
+        self._is_on = False
+        self.async_write_ha_state()
+
+    async def async_added_to_hass(self) -> None:
+        """Restore previous state."""
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+        if last_state:
+            self._is_on = last_state.state == "on"
+
+
+class DiraShabatOptionSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
+    """Generic user-configurable switch shown in the card.
+
+    The user renames the friendly_name from the HA UI to whatever they need
+    (e.g. "Guest Room", "Extra Guests", "Heater", etc.) and the card picks
+    up that name automatically.
+    """
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: DiraShabatCoordinator,
+        entry: ConfigEntry,
+        language: str,
+        number: int,
+    ) -> None:
+        """Initialize."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._number = number
+        self._attr_unique_id = f"{entry.entry_id}_option_{number}"
+        self._attr_translation_key = f"option_{number}"
+        self._attr_device_info = _device_info(entry)
+        self._attr_icon = "mdi:toggle-switch-variant"
+        self._is_on = False
+
+    @property
+    def is_on(self) -> bool:
+        """Return whether the option is enabled."""
         return self._is_on
 
     async def async_turn_on(self, **kwargs: Any) -> None:

@@ -68,6 +68,8 @@
       "vacation_mode": { "name": "Modo vacaciones" },
       "auto_on_dinner": { "name": "Auto On Cena" },
       "auto_on_lunch": { "name": "Auto On Almuerzo" },
+      "option_1": { "name": "Opción 1" },
+      "option_2": { "name": "Opción 2" },
       "day_1_dinner": { "name": "Día 1 - Cena" },
       "day_1_lunch": { "name": "Día 1 - Almuerzo" },
       "day_2_dinner": { "name": "Día 2 - Cena" },
