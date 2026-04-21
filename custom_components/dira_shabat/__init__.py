@@ -15,14 +15,10 @@ from homeassistant.helpers import entity_registry as er
 
 from .const import (
     CONF_CANDLE_LIGHTING_OFFSET,
-    CONF_DEFAULT_ALMUERZO,
-    CONF_DEFAULT_CENA,
     CONF_DIASPORA,
     CONF_HAVDALAH_OFFSET,
     CONF_RESET_DELAY,
-    DEFAULT_ALMUERZO,
     DEFAULT_CANDLE_LIGHTING_OFFSET,
-    DEFAULT_CENA,
     DEFAULT_DIASPORA,
     DEFAULT_HAVDALAH_OFFSET,
     DEFAULT_RESET_DELAY,
@@ -183,12 +179,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "prev_issur": None,
     }
 
-    # Wait for HA to be fully started before wiring the reset listener
-    if hass.state is CoreState.running:
+    # Wait for HA to be fully started before wiring listeners
+    def _wire_listeners() -> None:
         _setup_issur_listener(hass, entry, coordinator)
+        _setup_vacation_listener(hass, entry)
+
+    if hass.state is CoreState.running:
+        _wire_listeners()
     else:
         async def _on_started(event):
-            _setup_issur_listener(hass, entry, coordinator)
+            _wire_listeners()
 
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _on_started)
 
@@ -228,48 +228,67 @@ def _setup_issur_listener(
     hass.data[DOMAIN][entry.entry_id]["unsub_listeners"].append(unsub)
 
 
+def _setup_vacation_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Apply reset whenever vacation_mode flips (ON → freeze, OFF → normal)."""
+    from homeassistant.helpers.event import async_track_state_change_event
+
+    vacation_entity = f"switch.{DOMAIN}_vacation_mode"
+
+    @callback
+    def _on_vacation_changed(event):
+        old = event.data.get("old_state")
+        new = event.data.get("new_state")
+        if not old or not new or old.state == new.state:
+            return
+        _LOGGER.info("Vacation mode %s → %s, applying reset", old.state, new.state)
+        hass.async_create_task(_async_apply_reset(hass))
+
+    unsub = async_track_state_change_event(hass, [vacation_entity], _on_vacation_changed)
+    hass.data[DOMAIN][entry.entry_id]["unsub_listeners"].append(unsub)
+
+
+def _entity_on(hass: HomeAssistant, entity_id: str, fallback: bool = False) -> bool:
+    """Return whether an entity state is 'on' (fallback if missing)."""
+    state = hass.states.get(entity_id)
+    return state.state == "on" if state else fallback
+
+
+async def _async_apply_reset(hass: HomeAssistant) -> None:
+    """Apply the current mode (vacation / normal) to Shabat mode + meal switches."""
+    if _entity_on(hass, f"switch.{DOMAIN}_vacation_mode"):
+        _LOGGER.info("Vacation mode ON — Shabat mode stays OFF")
+        await hass.services.async_call(
+            "switch", "turn_off", {"entity_id": f"switch.{DOMAIN}_shabbat_mode"}
+        )
+        return
+
+    _LOGGER.info("Resetting Shabat mode ON + meals to Auto-on defaults")
+    default_cena = _entity_on(hass, f"switch.{DOMAIN}_auto_on_dinner", fallback=True)
+    default_almuerzo = _entity_on(hass, f"switch.{DOMAIN}_auto_on_lunch", fallback=True)
+
+    await hass.services.async_call(
+        "switch", "turn_on", {"entity_id": f"switch.{DOMAIN}_shabbat_mode"}
+    )
+    for day_num in range(1, MAX_PERIOD_DAYS + 1):
+        for meal_en, default in (("dinner", default_cena), ("lunch", default_almuerzo)):
+            entity_id = f"switch.{DOMAIN}_day_{day_num}_{meal_en}"
+            if hass.states.get(entity_id):
+                service = "turn_on" if default else "turn_off"
+                await hass.services.async_call(
+                    "switch", service, {"entity_id": entity_id}
+                )
+
+
 async def _async_reset_after_delay(
     hass: HomeAssistant, entry: ConfigEntry, delay: int
 ) -> None:
-    """Reset all meal switches to defaults after a delay."""
+    """Reset after issur melacha ends (with debounce delay)."""
     await asyncio.sleep(delay)
-
-    # Verify issur melacha is still off (wasn't a transient state)
     coordinator: DiraShabatCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     if (coordinator.data or {}).get("issur_melacha"):
         _LOGGER.info("Issur melacha came back on, skipping reset")
         return
-
-    _LOGGER.info("Resetting meal switches to defaults")
-
-    default_cena = entry.data.get(CONF_DEFAULT_CENA, DEFAULT_CENA)
-    default_almuerzo = entry.data.get(CONF_DEFAULT_ALMUERZO, DEFAULT_ALMUERZO)
-
-    # Reset modo shabat to ON
-    modo_entity = f"switch.{DOMAIN}_shabbat_mode"
-    await hass.services.async_call(
-        "switch", "turn_on", {"entity_id": modo_entity}
-    )
-
-    # Reset all meal switches to defaults
-    for day_num in range(1, MAX_PERIOD_DAYS + 1):
-        cena_entity = f"switch.{DOMAIN}_day_{day_num}_dinner"
-        almuerzo_entity = f"switch.{DOMAIN}_day_{day_num}_lunch"
-
-        cena_service = "turn_on" if default_cena else "turn_off"
-        almuerzo_service = "turn_on" if default_almuerzo else "turn_off"
-
-        cena_state = hass.states.get(cena_entity)
-        if cena_state:
-            await hass.services.async_call(
-                "switch", cena_service, {"entity_id": cena_entity}
-            )
-
-        almuerzo_state = hass.states.get(almuerzo_entity)
-        if almuerzo_state:
-            await hass.services.async_call(
-                "switch", almuerzo_service, {"entity_id": almuerzo_entity}
-            )
+    await _async_apply_reset(hass)
 
 
 async def _async_update_listener(

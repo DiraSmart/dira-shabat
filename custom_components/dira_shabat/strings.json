@@ -9,8 +9,6 @@
           "diaspora": "Diaspora (2-day Yom Tov)",
           "candle_lighting_offset": "Candle lighting offset (minutes before sunset)",
           "havdalah_offset": "Havdalah offset (minutes after sunset)",
-          "default_cena": "Dinner on by default",
-          "default_almuerzo": "Lunch on by default",
           "reset_delay": "Reset delay (seconds after issur melacha ends)"
         }
       }
@@ -28,8 +26,6 @@
           "diaspora": "Diaspora (2-day Yom Tov)",
           "candle_lighting_offset": "Candle lighting offset (minutes before sunset)",
           "havdalah_offset": "Havdalah offset (minutes after sunset)",
-          "default_cena": "Dinner on by default",
-          "default_almuerzo": "Lunch on by default",
           "reset_delay": "Reset delay (seconds after issur melacha ends)"
         }
       }
@@ -69,6 +65,9 @@
     "switch": {
       "shabbat_mode": { "name": "Shabbat mode" },
       "force_show": { "name": "Force show" },
+      "vacation_mode": { "name": "Vacation mode" },
+      "auto_on_dinner": { "name": "Auto On Dinner" },
+      "auto_on_lunch": { "name": "Auto On Lunch" },
       "day_1_dinner": { "name": "Day 1 - Dinner" },
       "day_1_lunch": { "name": "Day 1 - Lunch" },
       "day_2_dinner": { "name": "Day 2 - Dinner" },

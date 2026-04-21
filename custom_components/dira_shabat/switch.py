@@ -12,14 +12,10 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from homeassistant.helpers.device_registry import DeviceEntryType
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 
 from .const import (
-    CONF_DEFAULT_ALMUERZO,
-    CONF_DEFAULT_CENA,
     CONF_LANGUAGE,
-    DEFAULT_ALMUERZO,
-    DEFAULT_CENA,
     DEFAULT_LANGUAGE,
     DEVICE_NAME,
     DOMAIN,
@@ -51,6 +47,9 @@ async def async_setup_entry(
     entities: list[SwitchEntity] = [
         DiraShabatModeSwitch(coordinator, entry, language),
         DiraShabatForceShowSwitch(coordinator, entry, language),
+        DiraShabatVacationSwitch(coordinator, entry, language),
+        DiraShabatDefaultMealSwitch(coordinator, entry, language, "cena"),
+        DiraShabatDefaultMealSwitch(coordinator, entry, language, "almuerzo"),
     ]
 
     # Create meal switches for each possible day (up to MAX_PERIOD_DAYS)
@@ -212,11 +211,8 @@ class DiraShabatMealSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
         meal_label = t["dinner"] if meal_type == "cena" else t["lunch"]
         self._meal_label = meal_label
 
-        # Default state from config
-        if meal_type == "cena":
-            self._is_on = entry.data.get(CONF_DEFAULT_CENA, DEFAULT_CENA)
-        else:
-            self._is_on = entry.data.get(CONF_DEFAULT_ALMUERZO, DEFAULT_ALMUERZO)
+        # First-install default; subsequent runs restore from RestoreEntity
+        self._is_on = True
 
     @property
     def is_on(self) -> bool:
@@ -277,11 +273,10 @@ class DiraShabatMealSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
         self.async_write_ha_state()
 
     def reset_to_default(self) -> None:
-        """Reset this switch to the configured default value."""
-        if self._meal_type == "cena":
-            self._is_on = self._entry.data.get(CONF_DEFAULT_CENA, DEFAULT_CENA)
-        else:
-            self._is_on = self._entry.data.get(CONF_DEFAULT_ALMUERZO, DEFAULT_ALMUERZO)
+        """Reset this switch based on the user-controlled Auto-on switch."""
+        eng_suffix = MEAL_SUFFIX[self._meal_type]
+        auto_on = self.hass.states.get(f"switch.{DOMAIN}_auto_on_{eng_suffix}")
+        self._is_on = auto_on.state == "on" if auto_on else True
         self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:
@@ -292,3 +287,102 @@ class DiraShabatMealSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
             self._is_on = last_state.state == "on"
 
     # Name is handled by translation_key; day info is in attributes.
+
+
+class DiraShabatVacationSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
+    """Vacation mode: when ON, auto-on is ignored and meals reset to OFF.
+
+    Useful for trips: user leaves it on and every Shabat/Jag will start
+    with all meals OFF regardless of auto_on_dinner / auto_on_lunch.
+    """
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: DiraShabatCoordinator,
+        entry: ConfigEntry,
+        language: str,
+    ) -> None:
+        """Initialize."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_vacation_mode"
+        self._attr_translation_key = "vacation_mode"
+        self._attr_device_info = _device_info(entry)
+        self._attr_icon = "mdi:airplane"
+        self._attr_entity_category = EntityCategory.CONFIG
+        self._is_on = False
+
+    @property
+    def is_on(self) -> bool:
+        """Return vacation mode state."""
+        return self._is_on
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Enable vacation mode."""
+        self._is_on = True
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Disable vacation mode."""
+        self._is_on = False
+        self.async_write_ha_state()
+
+    async def async_added_to_hass(self) -> None:
+        """Restore previous state."""
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+        if last_state:
+            self._is_on = last_state.state == "on"
+
+
+class DiraShabatDefaultMealSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
+    """Switch that holds the default state applied to meal switches on reset.
+
+    User can toggle this off to skip eating at home for upcoming periods
+    (e.g. traveling the next 3 Shabbats). State persists across restarts.
+    """
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: DiraShabatCoordinator,
+        entry: ConfigEntry,
+        language: str,
+        meal_type: str,  # "cena" or "almuerzo"
+    ) -> None:
+        """Initialize."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._meal_type = meal_type
+        eng_suffix = MEAL_SUFFIX[meal_type]
+        self._attr_unique_id = f"{entry.entry_id}_auto_on_{eng_suffix}"
+        self._attr_translation_key = f"auto_on_{eng_suffix}"
+        self._attr_device_info = _device_info(entry)
+        self._attr_icon = ICON_FOOD_DINNER if meal_type == "cena" else ICON_FOOD_LUNCH
+        self._attr_entity_category = EntityCategory.CONFIG
+        self._is_on = True  # default ON on first install
+
+    @property
+    def is_on(self) -> bool:
+        """Return whether this meal is enabled by default."""
+        return self._is_on
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn on."""
+        self._is_on = True
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn off."""
+        self._is_on = False
+        self.async_write_ha_state()
+
+    async def async_added_to_hass(self) -> None:
+        """Restore previous state."""
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+        if last_state:
+            self._is_on = last_state.state == "on"

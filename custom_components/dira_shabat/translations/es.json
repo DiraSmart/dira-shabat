@@ -9,8 +9,6 @@
           "diaspora": "Diáspora (2 días de Iom Tov)",
           "candle_lighting_offset": "Minutos antes del atardecer para encendido de velas",
           "havdalah_offset": "Minutos después del atardecer para havdalá",
-          "default_cena": "Cena siempre activada por defecto",
-          "default_almuerzo": "Almuerzo siempre activado por defecto",
           "reset_delay": "Delay de reset (segundos después de issur melacha)"
         }
       }
@@ -28,8 +26,6 @@
           "diaspora": "Diáspora (2 días de Iom Tov)",
           "candle_lighting_offset": "Minutos antes del atardecer para encendido de velas",
           "havdalah_offset": "Minutos después del atardecer para havdalá",
-          "default_cena": "Cena siempre activada por defecto",
-          "default_almuerzo": "Almuerzo siempre activado por defecto",
           "reset_delay": "Delay de reset (segundos después de issur melacha)"
         }
       }
@@ -69,6 +65,9 @@
     "switch": {
       "shabbat_mode": { "name": "Modo Shabat" },
       "force_show": { "name": "Forzar mostrar" },
+      "vacation_mode": { "name": "Modo vacaciones" },
+      "auto_on_dinner": { "name": "Auto On Cena" },
+      "auto_on_lunch": { "name": "Auto On Almuerzo" },
       "day_1_dinner": { "name": "Día 1 - Cena" },
       "day_1_lunch": { "name": "Día 1 - Almuerzo" },
       "day_2_dinner": { "name": "Día 2 - Cena" },

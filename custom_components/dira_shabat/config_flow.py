@@ -11,15 +11,11 @@ from homeassistant.core import callback
 
 from .const import (
     CONF_CANDLE_LIGHTING_OFFSET,
-    CONF_DEFAULT_ALMUERZO,
-    CONF_DEFAULT_CENA,
     CONF_DIASPORA,
     CONF_HAVDALAH_OFFSET,
     CONF_LANGUAGE,
     CONF_RESET_DELAY,
-    DEFAULT_ALMUERZO,
     DEFAULT_CANDLE_LIGHTING_OFFSET,
-    DEFAULT_CENA,
     DEFAULT_DIASPORA,
     DEFAULT_HAVDALAH_OFFSET,
     DEFAULT_LANGUAGE,
@@ -51,14 +47,6 @@ def _schema(current: dict[str, Any] | None = None) -> vol.Schema:
                 CONF_HAVDALAH_OFFSET,
                 default=current.get(CONF_HAVDALAH_OFFSET, DEFAULT_HAVDALAH_OFFSET),
             ): vol.All(vol.Coerce(int), vol.Range(min=0, max=120)),
-            vol.Required(
-                CONF_DEFAULT_CENA,
-                default=current.get(CONF_DEFAULT_CENA, DEFAULT_CENA),
-            ): bool,
-            vol.Required(
-                CONF_DEFAULT_ALMUERZO,
-                default=current.get(CONF_DEFAULT_ALMUERZO, DEFAULT_ALMUERZO),
-            ): bool,
             vol.Required(
                 CONF_RESET_DELAY,
                 default=current.get(CONF_RESET_DELAY, DEFAULT_RESET_DELAY),

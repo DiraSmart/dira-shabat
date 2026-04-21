@@ -6,8 +6,6 @@ MANUFACTURER = "Dira Shabat"
 DEVICE_NAME = "Dira Shabat"
 
 # Config keys
-CONF_DEFAULT_CENA = "default_cena"
-CONF_DEFAULT_ALMUERZO = "default_almuerzo"
 CONF_RESET_DELAY = "reset_delay"
 CONF_LANGUAGE = "language"
 CONF_DIASPORA = "diaspora"
@@ -16,8 +14,6 @@ CONF_HAVDALAH_OFFSET = "havdalah_offset"
 
 # Defaults
 DEFAULT_DIASPORA = True
-DEFAULT_CENA = True
-DEFAULT_ALMUERZO = True
 DEFAULT_RESET_DELAY = 30
 DEFAULT_LANGUAGE = "es"
 DEFAULT_CANDLE_LIGHTING_OFFSET = 18
