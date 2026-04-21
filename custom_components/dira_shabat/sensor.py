@@ -55,6 +55,7 @@ async def async_setup_entry(
         DiraShabatParashaSensor(coordinator, entry, language),
         DiraShabatDafYomiSensor(coordinator, entry, language),
         DiraShabatTehilimSensor(coordinator, entry, language),
+        DiraShabatFastSensor(coordinator, entry, language),
     ])
 
 
@@ -469,3 +470,45 @@ class DiraShabatTehilimSensor(DiraShabatBaseSensor):
         if not self.coordinator.data:
             return {}
         return {"weekly": self.coordinator.data.get("tehilim_weekly", "")}
+
+
+class DiraShabatFastSensor(DiraShabatBaseSensor):
+    """Sensor for the upcoming (or active) fast day.
+
+    State = fast name (or empty string if no fast in the next year).
+    Attributes include start/end datetimes and whether the fast is active now.
+    """
+
+    def __init__(self, coordinator, entry, language):
+        """Initialize."""
+        super().__init__(coordinator, entry, language)
+        self._attr_unique_id = f"{entry.entry_id}_fast"
+        self._attr_name = "Ayuno" if language == "es" else "Fast"
+        self._attr_icon = "mdi:silverware-variant"
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the fast name."""
+        if not self.coordinator.data:
+            return ""
+        fast = self.coordinator.data.get("fast")
+        return fast["name"] if fast else ""
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return fast timing details."""
+        if not self.coordinator.data:
+            return {}
+        fast = self.coordinator.data.get("fast")
+        if not fast:
+            return {}
+        return {
+            "id": fast.get("id", ""),
+            "is_major": fast.get("is_major", False),
+            "is_active": fast.get("is_active", False),
+            "date": fast.get("date", ""),
+            "start": fast["start_dt"].strftime("%H:%M") if fast.get("start_dt") else "--:--",
+            "end": fast["end_dt"].strftime("%H:%M") if fast.get("end_dt") else "--:--",
+            "start_datetime": fast["start_dt"].isoformat() if fast.get("start_dt") else "",
+            "end_datetime": fast["end_dt"].isoformat() if fast.get("end_dt") else "",
+        }

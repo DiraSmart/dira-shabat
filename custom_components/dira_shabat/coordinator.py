@@ -13,6 +13,19 @@ from hdate import HDateInfo, Location, Zmanim
 from hdate.holidays import HolidayTypes
 
 # Religious holiday types to surface (exclude Israeli national/memorial/modern)
+FAST_IDS = frozenset({
+    "tzom_gedaliah",
+    "asara_btevet",
+    "taanit_esther",
+    "tzom_tammuz",
+    "tisha_bav",
+    "yom_kippur",
+})
+MAJOR_FAST_IDS = frozenset({"tisha_bav", "yom_kippur"})
+
+# Approximate minutes after sunset for tzet hakochavim (stars appearing)
+TZET_OFFSET_MIN = 20
+
 RELIGIOUS_TYPES = frozenset({
     HolidayTypes.YOM_TOV,
     HolidayTypes.EREV_YOM_TOV,
@@ -58,6 +71,54 @@ TEHILIM_WEEKLY = {
     4: "107-119", # Friday
     5: "120-150", # Saturday (Shabbat)
 }
+
+
+def _upcoming_fast(
+    today: date,
+    diaspora: bool,
+    zmanim_for: Any,
+) -> dict[str, Any] | None:
+    """Find the upcoming (or current) fast day within the next year.
+
+    Returns a dict with name, id, is_major, start_dt, end_dt, is_active,
+    or None if no fast in the next 365 days.
+    """
+    for offset in range(0, 365):
+        check = today + timedelta(days=offset)
+        info = HDateInfo(check, diaspora)
+        fast = next((h for h in info.holidays if h.name in FAST_IDS), None)
+        if not fast:
+            continue
+
+        zmanim_today = zmanim_for(check)
+        is_major = fast.name in MAJOR_FAST_IDS
+        start_dt = None
+        end_dt = None
+
+        if fast.name == "yom_kippur":
+            # Start at candle lighting of erev, end at havdalah
+            start_dt = zmanim_for(check - timedelta(days=1)).candle_lighting
+            end_dt = zmanim_today.havdalah
+        elif fast.name == "tisha_bav":
+            # Start at shkia of previous day, end at stars (~20 min after shkia)
+            start_dt = zmanim_for(check - timedelta(days=1)).shkia
+            shkia_today = zmanim_today.shkia
+            end_dt = shkia_today + timedelta(minutes=TZET_OFFSET_MIN) if shkia_today else None
+        else:
+            # Minor fast: alot hashachar → stars
+            start_dt = zmanim_today.alot_hashachar
+            shkia_today = zmanim_today.shkia
+            end_dt = shkia_today + timedelta(minutes=TZET_OFFSET_MIN) if shkia_today else None
+
+        return {
+            "name": str(fast),
+            "id": fast.name,
+            "is_major": is_major,
+            "date": check.isoformat(),
+            "start_dt": start_dt,
+            "end_dt": end_dt,
+        }
+    return None
 
 
 def _has_issur_melacha(check_date: date, diaspora: bool) -> dict[str, Any]:
@@ -330,6 +391,19 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         # Shabat Mevarchim
         mevarchim = _next_shabbat_mevarchim(today, self.diaspora)
 
+        # Upcoming / current fast
+        fast = _upcoming_fast(today, self.diaspora, self._zmanim)
+        if fast:
+            if fast["start_dt"]:
+                fast["start_dt"] = dt_util.as_local(fast["start_dt"])
+            if fast["end_dt"]:
+                fast["end_dt"] = dt_util.as_local(fast["end_dt"])
+            fast["is_active"] = bool(
+                fast["start_dt"]
+                and fast["end_dt"]
+                and fast["start_dt"] <= now <= fast["end_dt"]
+            )
+
         # Card visibility
         show_card = is_erev or is_issur
 
@@ -365,6 +439,7 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
             "daf_yomi": daf_yomi,
             "tehilim_daily": tehilim["daily"],
             "tehilim_weekly": tehilim["weekly"],
+            "fast": fast,
         }
 
     def _is_motzei(
