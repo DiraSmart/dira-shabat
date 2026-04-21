@@ -1,8 +1,4 @@
-"""Data coordinator for the Dira Shabat integration.
-
-All calculations use the `hdate` library directly. No dependency on
-the jewish_calendar integration.
-"""
+"""Data coordinator for the Dira Shabat integration."""
 from __future__ import annotations
 
 import logging
