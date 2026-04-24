@@ -1,0 +1,238 @@
+- id: dira_shabat_sample_0001
+  alias: '[Sample · En Casa] Spots Sala → ON @ 18:00'
+  trigger:
+  - platform: time
+    at: '18:00:00'
+  condition:
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_erev_shabbat_hag
+    state: 'on'
+  action:
+  - service: light.turn_on
+    target:
+      entity_id: light.sala_spots
+    data:
+      brightness_pct: 100
+  mode: single
+- id: dira_shabat_sample_0002
+  alias: '[Sample · En Casa] A/C Sala → 22 @ 18:30'
+  trigger:
+  - platform: time
+    at: '18:30:00'
+  condition:
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_erev_shabbat_hag
+    state: 'on'
+  action:
+  - service: climate.set_temperature
+    target:
+      entity_id: climate.sala_ac
+    data:
+      temperature: 22
+  mode: single
+- id: dira_shabat_sample_0003
+  alias: '[Sample · En Casa] Luz Cocina → ON @ 19:00'
+  trigger:
+  - platform: time
+    at: '19:00:00'
+  condition:
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_issur_melacha
+    state: 'on'
+  - condition: or
+    conditions:
+    - condition: state
+      entity_id: binary_sensor.dira_shabat_dinner_today
+      state: 'on'
+    - condition: state
+      entity_id: binary_sensor.dira_shabat_lunch_today
+      state: 'on'
+  action:
+  - service: light.turn_on
+    target:
+      entity_id: light.cocina_main
+    data:
+      brightness_pct: 100
+  mode: single
+- id: dira_shabat_sample_0004
+  alias: '[Sample · En Casa] Spots Sala → 30 @ 20:00'
+  trigger:
+  - platform: time
+    at: '20:00:00'
+  condition:
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_issur_melacha
+    state: 'on'
+  - condition: or
+    conditions:
+    - condition: state
+      entity_id: binary_sensor.dira_shabat_dinner_today
+      state: 'on'
+    - condition: state
+      entity_id: binary_sensor.dira_shabat_lunch_today
+      state: 'on'
+  action:
+  - service: light.turn_on
+    target:
+      entity_id: light.sala_spots
+    data:
+      brightness_pct: 30
+  mode: single
+- id: dira_shabat_sample_0005
+  alias: '[Sample · En Casa] Luz Cocina → OFF @ 23:00'
+  trigger:
+  - platform: time
+    at: '23:00:00'
+  condition:
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_issur_melacha
+    state: 'on'
+  - condition: or
+    conditions:
+    - condition: state
+      entity_id: binary_sensor.dira_shabat_dinner_today
+      state: 'on'
+    - condition: state
+      entity_id: binary_sensor.dira_shabat_lunch_today
+      state: 'on'
+  action:
+  - service: light.turn_off
+    target:
+      entity_id: light.cocina_main
+  mode: single
+- id: dira_shabat_sample_0006
+  alias: '[Sample · En Casa] A/C Sala → OFF @ 23:00'
+  trigger:
+  - platform: time
+    at: '23:00:00'
+  condition:
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_issur_melacha
+    state: 'on'
+  - condition: or
+    conditions:
+    - condition: state
+      entity_id: binary_sensor.dira_shabat_dinner_today
+      state: 'on'
+    - condition: state
+      entity_id: binary_sensor.dira_shabat_lunch_today
+      state: 'on'
+  action:
+  - service: climate.turn_off
+    target:
+      entity_id: climate.sala_ac
+  mode: single
+- id: dira_shabat_sample_0007
+  alias: '[Sample · En Casa] Spots Sala → OFF @ 23:00'
+  trigger:
+  - platform: time
+    at: '23:00:00'
+  condition:
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_issur_melacha
+    state: 'on'
+  - condition: or
+    conditions:
+    - condition: state
+      entity_id: binary_sensor.dira_shabat_dinner_today
+      state: 'on'
+    - condition: state
+      entity_id: binary_sensor.dira_shabat_lunch_today
+      state: 'on'
+  action:
+  - service: light.turn_off
+    target:
+      entity_id: light.sala_spots
+  mode: single
+- id: dira_shabat_sample_0008
+  alias: '[Sample · Fuera] Luz Cocina → ON @ 19:00'
+  trigger:
+  - platform: time
+    at: '19:00:00'
+  condition:
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_issur_melacha
+    state: 'on'
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_dinner_today
+    state: 'off'
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_lunch_today
+    state: 'off'
+  action:
+  - service: light.turn_on
+    target:
+      entity_id: light.cocina_main
+    data:
+      brightness_pct: 100
+  mode: single
+- id: dira_shabat_sample_0009
+  alias: '[Sample · Fuera] Luz Cocina → OFF @ 23:00'
+  trigger:
+  - platform: time
+    at: '23:00:00'
+  condition:
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_issur_melacha
+    state: 'on'
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_dinner_today
+    state: 'off'
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_lunch_today
+    state: 'off'
+  action:
+  - service: light.turn_off
+    target:
+      entity_id: light.cocina_main
+  mode: single
+- id: dira_shabat_sample_0010
+  alias: '[Sample · Diario Lun-Vier] Spots Sala → ON @ 07:00'
+  trigger:
+  - platform: time
+    at: 07:00:00
+  condition:
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_issur_melacha
+    state: 'off'
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_erev_shabbat_hag
+    state: 'off'
+  - condition: time
+    weekday:
+    - mon
+    - tue
+    - wed
+    - thu
+    - fri
+  action:
+  - service: light.turn_on
+    target:
+      entity_id: light.sala_spots
+    data:
+      brightness_pct: 100
+  mode: single
+- id: dira_shabat_sample_0011
+  alias: '[Sample · Diario Lun-Vier] Spots Sala → OFF @ 22:30'
+  trigger:
+  - platform: time
+    at: '22:30:00'
+  condition:
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_issur_melacha
+    state: 'off'
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_erev_shabbat_hag
+    state: 'off'
+  - condition: time
+    weekday:
+    - mon
+    - tue
+    - wed
+    - thu
+    - fri
+  action:
+  - service: light.turn_off
+    target:
+      entity_id: light.sala_spots
+  mode: single
