@@ -71,7 +71,7 @@ class ScheduleCell:
     in_erev_band: bool
     area: str
     nombre: str
-    value: str | int
+    value: str | int | float
 
 
 _EREV_SENTINEL = "erev shabat"
@@ -155,13 +155,17 @@ def read_schedule_sheet(path: str | Path, sheet_name: str) -> Iterator[ScheduleC
                 continue
             if isinstance(value, str):
                 s = value.strip()
-                # Coerce numeric strings to int
+                # Coerce numeric strings: int first, then float; keep as string
+                # (e.g. "ON"/"OFF") if neither parses.
                 try:
                     value = int(s)
                 except ValueError:
-                    value = s
-            elif isinstance(value, (int, float)):
-                value = int(value)
+                    try:
+                        value = float(s)
+                    except ValueError:
+                        value = s
+            # If value is already int/float from openpyxl, preserve the type
+            # (don't coerce float→int; that loses fractional climate temps).
             yield ScheduleCell(
                 time=time,
                 in_erev_band=in_erev,

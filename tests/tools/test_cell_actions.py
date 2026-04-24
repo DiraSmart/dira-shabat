@@ -105,3 +105,21 @@ def test_unknown_value_returns_none():
 
 def test_unknown_domain_returns_none():
     assert parse_cell("ON", "sensor", "sensor.x") is None
+
+
+def test_climate_preserves_float_temperature():
+    """Climate accepts fractional temperatures (e.g. 22.5)."""
+    assert parse_cell(22.5, "climate", "climate.x") == {
+        "service": "climate.set_temperature",
+        "target": {"entity_id": "climate.x"},
+        "data": {"temperature": 22.5},
+    }
+
+
+def test_light_brightness_truncates_float_to_int():
+    """Brightness is an integer in HA; floats are truncated."""
+    assert parse_cell(50.7, "light", "light.x") == {
+        "service": "light.turn_on",
+        "target": {"entity_id": "light.x"},
+        "data": {"brightness_pct": 50},
+    }
