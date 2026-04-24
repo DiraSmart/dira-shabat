@@ -9,6 +9,7 @@ from pathlib import Path
 # Allow running from repo root without installing the package
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from tools.dira_scheduler import SHEETS  # noqa: E402
 from tools.dira_scheduler.excel_reader import (  # noqa: E402
     DispositivosError,
     read_dispositivos,
@@ -18,9 +19,6 @@ from tools.dira_scheduler.yaml_emitter import (  # noqa: E402
     build_automations,
     dump_yaml,
 )
-
-
-SHEETS = ("En Casa", "Fuera", "Diario Lun-Vier")
 
 
 def main(argv: list[str] | None = None) -> int:

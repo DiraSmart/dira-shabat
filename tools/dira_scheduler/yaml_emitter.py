@@ -7,12 +7,11 @@ from typing import Iterable
 
 import yaml
 
+from tools.dira_scheduler import SHEETS
 from tools.dira_scheduler.cell_actions import parse_cell
 from tools.dira_scheduler.conditions import build_conditions
 from tools.dira_scheduler.excel_reader import Device, ScheduleCell
 
-
-_SHEET_ORDER = ("En Casa", "Fuera", "Diario Lun-Vier")
 
 _TIME_PATTERN = re.compile(r"^\d{1,2}:\d{2}:\d{2}$")
 
@@ -31,7 +30,7 @@ def build_automations(
 ) -> list[dict]:
     """Build the full automation list for all sheets."""
     rows: list[tuple[int, str, ScheduleCell, dict]] = []
-    for sheet in _SHEET_ORDER:
+    for sheet in SHEETS:
         cells = cells_by_sheet.get(sheet, [])
         for cell in cells:
             device = devices.get((cell.area, cell.nombre))
@@ -47,7 +46,7 @@ def build_automations(
             if action is None:
                 continue
             rows.append((
-                _SHEET_ORDER.index(sheet),
+                SHEETS.index(sheet),
                 sheet,
                 cell,
                 action,
