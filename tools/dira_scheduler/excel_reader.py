@@ -1,9 +1,11 @@
 """Parse Dira Shabat scheduler Excel files."""
 from __future__ import annotations
 
+import warnings as _warnings
 from dataclasses import dataclass
+from datetime import time as _dt_time
 from pathlib import Path
-from typing import Iterable
+from typing import Iterator
 
 from openpyxl import load_workbook
 
@@ -61,10 +63,6 @@ def read_dispositivos(path: str | Path) -> dict[tuple[str, str], Device]:
             )
         out[key] = Device(area=area, nombre=nombre, domain=tipo, entity_id=entity_id)
     return out
-
-
-from datetime import time as _dt_time
-from typing import Iterator
 
 
 @dataclass(frozen=True)
@@ -139,6 +137,14 @@ def read_schedule_sheet(path: str | Path, sheet_name: str) -> Iterator[ScheduleC
             continue
         time = _format_time(col_a)
         if time is None:
+            # Invalid time (non-empty col_a that doesn't parse) → warn.
+            if col_a is not None and str(col_a).strip():
+                _warnings.warn(
+                    f"Sheet {sheet_name!r}: invalid time in column A: "
+                    f"{col_a!r}; row skipped.",
+                    UserWarning,
+                    stacklevel=2,
+                )
             in_erev = False  # band ends at first non-time row after entering
             continue
         for col_idx, (area, nombre) in col_map.items():

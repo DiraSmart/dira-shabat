@@ -153,3 +153,20 @@ def test_time_parsed_from_datetime_object(make_xlsx):
     })
     cells = list(read_schedule_sheet(path, "En Casa"))
     assert cells[0].time == "19:00"
+
+
+def test_invalid_time_in_column_a_warns(make_xlsx, recwarn):
+    path = make_xlsx({
+        "Dispositivos": [["Area", "Nombre", "Tipo", "entity_id", "Acepta número"]],
+        "En Casa": [
+            [None, "Sala"],
+            [None, "Spots"],
+            ["19-00", "ON"],   # invalid time format
+            ["19:00", "OFF"],  # valid, should still be processed
+        ],
+    })
+    cells = list(read_schedule_sheet(path, "En Casa"))
+    assert any("invalid time" in str(w.message) for w in recwarn.list)
+    assert any("19-00" in str(w.message) for w in recwarn.list)
+    # The valid row is still parsed
+    assert any(c.time == "19:00" for c in cells)

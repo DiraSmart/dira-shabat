@@ -84,3 +84,22 @@ def test_cli_summary_to_stderr(make_xlsx, repo_root):
     result = _run([str(path), "--prefix", "juan"], cwd=repo_root)
     assert result.returncode == 0
     assert "2 automation" in result.stderr.lower() or "2 automations" in result.stderr.lower()
+
+
+def test_cli_reports_warnings_in_summary(make_xlsx, repo_root):
+    """A schedule cell referencing an unknown device yields a warning in the summary."""
+    path = make_xlsx({
+        "Dispositivos": [
+            ["Area", "Nombre", "Tipo", "entity_id", "Acepta número"],
+            ["Sala", "Spots", "light", "light.sala_spots", "dimming %"],
+        ],
+        "En Casa": [
+            [None, "Sala"],
+            [None, "Phantom"],   # not in Dispositivos
+            ["19:00", "ON"],
+        ],
+    })
+    result = _run([str(path), "--prefix", "juan"], cwd=repo_root)
+    assert result.returncode == 0
+    assert "1 warning" in result.stderr.lower()
+    assert "Phantom" in result.stderr

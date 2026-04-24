@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import warnings as _warnings
 from pathlib import Path
 
 # Allow running from repo root without installing the package
@@ -35,13 +36,17 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        devices = read_dispositivos(src)
+        with _warnings.catch_warnings(record=True) as captured:
+            _warnings.simplefilter("always")
+            devices = read_dispositivos(src)
+            cells_by_sheet = {
+                sheet: list(read_schedule_sheet(src, sheet)) for sheet in SHEETS
+            }
+            automations = build_automations(cells_by_sheet, devices, prefix=args.prefix)
     except DispositivosError as err:
         print(f"Error reading Dispositivos: {err}", file=sys.stderr)
         return 1
 
-    cells_by_sheet = {sheet: list(read_schedule_sheet(src, sheet)) for sheet in SHEETS}
-    automations = build_automations(cells_by_sheet, devices, prefix=args.prefix)
     yaml_text = dump_yaml(automations)
 
     if args.output:
@@ -55,6 +60,10 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.write(yaml_text)
 
     print(f"Generated {len(automations)} automations.", file=sys.stderr)
+    if captured:
+        print(f"{len(captured)} warning(s):", file=sys.stderr)
+        for w in captured:
+            print(f"  - {w.message}", file=sys.stderr)
     return 0
 
 
