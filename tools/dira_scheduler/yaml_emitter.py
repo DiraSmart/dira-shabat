@@ -1,6 +1,7 @@
 """Assemble HA automations from parsed Excel data and serialize to YAML."""
 from __future__ import annotations
 
+import re
 import warnings
 from typing import Iterable
 
@@ -12,6 +13,15 @@ from tools.dira_scheduler.excel_reader import Device, ScheduleCell
 
 
 _SHEET_ORDER = ("En Casa", "Fuera", "Diario Lun-Vier")
+
+_TIME_PATTERN = re.compile(r"^\d{1,2}:\d{2}:\d{2}$")
+
+
+def _str_representer(dumper, value):
+    """Force quoting for HH:MM:SS strings to avoid YAML 1.1 sexagesimal parsing."""
+    if _TIME_PATTERN.match(value):
+        return dumper.represent_scalar("tag:yaml.org,2002:str", value, style="'")
+    return dumper.represent_scalar("tag:yaml.org,2002:str", value)
 
 
 def build_automations(
@@ -78,8 +88,14 @@ def _verb_for_value(value) -> str:
 
 def dump_yaml(automations: list[dict]) -> str:
     """Serialize the automation list as a YAML string."""
-    return yaml.safe_dump(
+
+    class _Dumper(yaml.SafeDumper):
+        pass
+
+    _Dumper.add_representer(str, _str_representer)
+    return yaml.dump(
         automations,
+        Dumper=_Dumper,
         sort_keys=False,
         allow_unicode=True,
         default_flow_style=False,

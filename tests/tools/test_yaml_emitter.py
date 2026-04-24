@@ -107,3 +107,16 @@ def test_dump_yaml_round_trips():
     out = dump_yaml(automations)
     parsed = yaml.safe_load(out)
     assert parsed == automations
+
+
+def test_dump_yaml_quotes_time_strings():
+    """All HH:MM:SS time values are quoted to avoid YAML 1.1 sexagesimal parsing."""
+    devices = {("Sala", "Spots"): Device("Sala", "Spots", "light", "light.x")}
+    automations = build_automations(
+        cells_by_sheet={"En Casa": [ScheduleCell("07:00", False, "Sala", "Spots", "ON")]},
+        devices=devices,
+        prefix="x",
+    )
+    out = dump_yaml(automations)
+    assert "'07:00:00'" in out
+    assert "07:00:00\n" not in out  # unquoted form must NOT appear

@@ -190,7 +190,7 @@
   alias: '[Sample · Diario Lun-Vier] Spots Sala → ON @ 07:00'
   trigger:
   - platform: time
-    at: 07:00:00
+    at: '07:00:00'
   condition:
   - condition: state
     entity_id: binary_sensor.dira_shabat_issur_melacha
