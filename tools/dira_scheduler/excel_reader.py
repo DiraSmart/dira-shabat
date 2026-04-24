@@ -61,3 +61,105 @@ def read_dispositivos(path: str | Path) -> dict[tuple[str, str], Device]:
             )
         out[key] = Device(area=area, nombre=nombre, domain=tipo, entity_id=entity_id)
     return out
+
+
+from datetime import time as _dt_time
+from typing import Iterator
+
+
+@dataclass(frozen=True)
+class ScheduleCell:
+    time: str               # "HH:MM"
+    in_erev_band: bool
+    area: str
+    nombre: str
+    value: str | int
+
+
+_EREV_SENTINEL = "erev shabat"
+
+
+def _format_time(value) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, _dt_time):
+        return value.strftime("%H:%M")
+    s = str(value).strip()
+    if not s:
+        return None
+    # Accept "HH:MM" (allow single-digit hour)
+    parts = s.split(":")
+    if len(parts) != 2:
+        return None
+    try:
+        h, m = int(parts[0]), int(parts[1])
+    except ValueError:
+        return None
+    if not (0 <= h < 24 and 0 <= m < 60):
+        return None
+    return f"{h:02d}:{m:02d}"
+
+
+def read_schedule_sheet(path: str | Path, sheet_name: str) -> Iterator[ScheduleCell]:
+    """Yield ScheduleCell for every non-empty cell in a schedule sheet.
+
+    Returns nothing if the sheet doesn't exist.
+    Row 1 = area headers (col A blank), row 2 = nombre headers.
+    Column A is times; a row with col A == 'Erev Shabat' (case-insensitive)
+    starts the Erev band; the band ends on the next row whose col A is empty
+    or non-time.
+    """
+    wb = load_workbook(path, read_only=True, data_only=True)
+    if sheet_name not in wb.sheetnames:
+        return
+    ws = wb[sheet_name]
+    rows = list(ws.iter_rows(values_only=True))
+    if len(rows) < 3:
+        return
+
+    # Build column -> (area, nombre) mapping
+    area_row = list(rows[0])
+    nombre_row = list(rows[1])
+    col_map: dict[int, tuple[str, str]] = {}
+    last_area: str | None = None
+    for col_idx, area in enumerate(area_row):
+        if col_idx == 0:
+            continue
+        if area is not None:
+            last_area = str(area).strip() or last_area
+        nombre = nombre_row[col_idx] if col_idx < len(nombre_row) else None
+        if last_area and nombre:
+            col_map[col_idx] = (last_area, str(nombre).strip())
+
+    in_erev = False
+    for row in rows[2:]:
+        col_a = row[0]
+        if col_a is not None and str(col_a).strip().lower() == _EREV_SENTINEL:
+            in_erev = True
+            continue
+        time = _format_time(col_a)
+        if time is None:
+            in_erev = False  # band ends at first non-time row after entering
+            continue
+        for col_idx, (area, nombre) in col_map.items():
+            if col_idx >= len(row):
+                continue
+            value = row[col_idx]
+            if value is None or (isinstance(value, str) and not value.strip()):
+                continue
+            if isinstance(value, str):
+                s = value.strip()
+                # Coerce numeric strings to int
+                try:
+                    value = int(s)
+                except ValueError:
+                    value = s
+            elif isinstance(value, (int, float)):
+                value = int(value)
+            yield ScheduleCell(
+                time=time,
+                in_erev_band=in_erev,
+                area=area,
+                nombre=nombre,
+                value=value,
+            )
