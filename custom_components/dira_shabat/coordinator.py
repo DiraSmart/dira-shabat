@@ -336,24 +336,32 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         period_days = self._calculate_period_days(candle_lighting_dt)
 
         # Current day within the period (cena transitions at 06:00 AM, almuerzo one day behind)
-        # Day-number calculations.
+        # Day-number calculations — three separate concepts:
+        # - current_day_jewish: which Jewish day we are in (sunset → sunset =
+        #   velas → next velas). Used by the "Día actual" display sensor.
+        # - current_day_cena: which day's dinner is tonight. Transitions at
+        #   06:00 each morning so automations have advance notice of "tonight's
+        #   dinner" before sunset. Returns 0 when there are no more dinners.
+        # - current_day_almuerzo: which day's lunch is today. Transitions at
+        #   06:00 too ("today's lunch"). Returns 0 before the first lunch.
         #
-        # Day K dinner happens evening of (velas_date + K - 1).
-        # Day K lunch  happens midday  of (velas_date + K).
-        #
-        # Cena transitions at 06:00 each morning ("preview tonight's dinner").
-        # Almuerzo transitions at 06:00 each morning ("today's lunch").
-        # Before 06:00 we treat the date as the previous day.
-        #
-        # Example for a 2-day chag with velas Thursday 18:10:
-        #   Thu 18:10 → Fri 05:59: cena=1, almuerzo=0 (no lunch in period yet)
-        #   Fri 06:00 → Sat 05:59: cena=2, almuerzo=1 (Fri lunch = Day 1)
-        #   Sat 06:00 → end:       cena=0, almuerzo=2 (Sat lunch = Day 2, no more dinners)
+        # Example — 2-day chag with velas Thursday 18:10:
+        #   Thu 18:10 → Fri 18:09: jewish=1, cena=1 (Thu eve), almuerzo=…
+        #   Fri 06:00 → Fri 18:09: jewish=1, cena=2 (Fri eve preview), almuerzo=1
+        #   Fri 18:10 → Sat 05:59: jewish=2, cena=2, almuerzo=1
+        #   Sat 06:00 → havdalah:  jewish=2, cena=0 (no more dinners), almuerzo=2
+        current_day_jewish = 0
         current_day_cena = 0
         current_day_almuerzo = 0
         current_day_name = ""
         num_days = len(period_days)
         if is_issur and candle_lighting_dt and now >= candle_lighting_dt:
+            # Jewish day: 24-hour windows from velas, clamped to the period
+            hours_since_velas = (now - candle_lighting_dt).total_seconds() / 3600
+            raw_jewish = int(hours_since_velas // 24) + 1
+            current_day_jewish = max(1, min(raw_jewish, num_days))
+
+            # Meal previews: date arithmetic with 06:00 transition
             effective_date = now.date() - timedelta(days=1) if now.hour < 6 else now.date()
             days_from_velas = (effective_date - candle_lighting_dt.date()).days
             raw_cena = days_from_velas + 1
@@ -362,9 +370,9 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
                 current_day_cena = raw_cena
             if 1 <= raw_almuerzo <= num_days:
                 current_day_almuerzo = raw_almuerzo
-            active = current_day_cena or current_day_almuerzo
-            if 0 < active <= num_days:
-                current_day_name = period_days[active - 1].get("day_name", "")
+
+            if 0 < current_day_jewish <= num_days:
+                current_day_name = period_days[current_day_jewish - 1].get("day_name", "")
 
         # Tomorrow issur melacha
         tomorrow = today + timedelta(days=1)
@@ -446,7 +454,8 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
             "tomorrow_issur": tomorrow_issur,
             "ultimo_dia": ultimo_dia,
             "show_card": show_card,
-            "current_day": current_day_cena or current_day_almuerzo,
+            "current_day": current_day_jewish,
+            "current_day_jewish": current_day_jewish,
             "current_day_cena": current_day_cena,
             "current_day_almuerzo": current_day_almuerzo,
             "current_day_name": current_day_name,
