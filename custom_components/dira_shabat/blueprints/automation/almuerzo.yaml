@@ -1,0 +1,211 @@
+blueprint:
+  name: Dira Shabat — Almuerzo
+  description: >
+    Acciones (luces, switches, A/C) en un horario específico durante issur
+    melacha, opcionalmente condicionadas por el almuerzo del día actual (en casa
+    / afuera) y otros filtros avanzados.
+  domain: automation
+  source_url: https://github.com/DiraSmart/dira-shabat/blob/master/custom_components/dira_shabat/blueprints/automation/almuerzo.yaml
+  input:
+    hora:
+      name: Hora
+      description: A qué hora del día se dispara la acción
+      default: "12:30:00"
+      selector:
+        time:
+    opciones:
+      name: ¿Depende del almuerzo?
+      description: >
+        Casa = solo si almorzamos en casa. Afuera = solo si NO almorzamos en
+        casa. Siempre = ignora el almuerzo y corre cuando hay issur.
+      default: siempre
+      selector:
+        select:
+          options:
+            - label: Solo si almuerzo en Casa
+              value: "on"
+            - label: Solo si almuerzo Afuera
+              value: "off"
+            - label: Siempre (ignora el almuerzo)
+              value: siempre
+
+    advanced_filters:
+      name: Filtros avanzados (opcional)
+      icon: mdi:filter-variant
+      collapsed: true
+      input:
+        dia_filtro:
+          name: Día del período
+          description: Solo correr si el día actual cumple esta regla
+          default: cualquiera
+          selector:
+            select:
+              options:
+                - label: Cualquier día
+                  value: cualquiera
+                - label: Solo Día 1
+                  value: "1"
+                - label: Solo Día 2
+                  value: "2"
+                - label: Solo Día 3
+                  value: "3"
+                - label: Solo último día
+                  value: ultimo
+                - label: Cualquier día menos el último
+                  value: no_ultimo
+        skip_ends_today:
+          name: Saltear si shabat/jag termina hoy
+          description: >
+            Si se activa, la automatización NO corre cuando quedan menos
+            de 6h para havdalá.
+          default: false
+          selector:
+            boolean:
+        notify_target:
+          name: Notificación al ejecutar (opcional)
+          description: Servicio de notify para confirmación / debug
+          default: ""
+          selector:
+            text:
+
+    lights_on_settings:
+      name: Luces / Switches a encender
+      icon: mdi:lightbulb-group
+      collapsed: true
+      input:
+        light_on:
+          name: Encender
+          default: []
+          selector:
+            target:
+              entity:
+                domain:
+                  - light
+                  - switch
+    lights_off_settings:
+      name: Luces / Switches a apagar
+      icon: mdi:lightbulb-group-off-outline
+      collapsed: true
+      input:
+        light_off:
+          name: Apagar
+          default: []
+          selector:
+            target:
+              entity:
+                domain:
+                  - light
+                  - switch
+    climate_on_settings:
+      name: A/C a encender
+      icon: mdi:air-conditioner
+      collapsed: true
+      input:
+        airc_on:
+          name: Encender
+          default: []
+          selector:
+            target:
+              entity:
+                domain:
+                  - climate
+        temp_to_set:
+          name: Temperatura
+          default: 22
+          selector:
+            number:
+              min: 16
+              max: 30
+              unit_of_measurement: °C
+              step: 1
+              mode: slider
+    climate_off_settings:
+      name: A/C a apagar
+      icon: mdi:fan-off
+      collapsed: true
+      input:
+        airc_off:
+          name: Apagar
+          default: []
+          selector:
+            target:
+              entity:
+                domain:
+                  - climate
+
+mode: single
+
+trigger_variables:
+  var_time: !input hora
+
+variables:
+  var_opciones: !input opciones
+  var_dia_filtro: !input dia_filtro
+  var_skip_ends: !input skip_ends_today
+  var_notify: !input notify_target
+  var_temp: !input temp_to_set
+
+trigger:
+  - platform: time
+    at: !input hora
+  - platform: template
+    value_template: "{{ now() >= (today_at(var_time) + timedelta(minutes=3)) }}"
+  - platform: template
+    value_template: "{{ now() >= (today_at(var_time) + timedelta(minutes=6)) }}"
+
+condition:
+  - condition: state
+    entity_id: switch.dira_shabat_shabbat_mode
+    state: "on"
+  - condition: state
+    entity_id: binary_sensor.dira_shabat_issur_melacha
+    state: "on"
+  - condition: template
+    value_template: >-
+      {% if var_opciones == 'siempre' %} true
+      {% else %} {{ is_state('binary_sensor.dira_shabat_lunch_today', var_opciones) }}
+      {% endif %}
+  - condition: template
+    value_template: >-
+      {% set dia = states('sensor.dira_shabat_current_day') | int(0) %}
+      {% set ultimo = is_state('binary_sensor.dira_shabat_last_day', 'on') %}
+      {% if var_dia_filtro == 'cualquiera' %} true
+      {% elif var_dia_filtro == 'ultimo' %} {{ ultimo }}
+      {% elif var_dia_filtro == 'no_ultimo' %} {{ not ultimo }}
+      {% else %} {{ dia == (var_dia_filtro | int) }}
+      {% endif %}
+  - condition: template
+    value_template: >-
+      {{ not var_skip_ends or
+         is_state('binary_sensor.dira_shabat_ends_today', 'off') }}
+
+action:
+  - if:
+      - "{{ (light_on | default([])) != [] }}"
+    then:
+      - service: homeassistant.turn_on
+        target: !input light_on
+  - if:
+      - "{{ (light_off | default([])) != [] }}"
+    then:
+      - service: homeassistant.turn_off
+        target: !input light_off
+  - if:
+      - "{{ (airc_on | default([])) != [] }}"
+    then:
+      - service: climate.set_temperature
+        data:
+          hvac_mode: cool
+          temperature: "{{ var_temp }}"
+        target: !input airc_on
+  - if:
+      - "{{ (airc_off | default([])) != [] }}"
+    then:
+      - service: climate.turn_off
+        target: !input airc_off
+  - if:
+      - "{{ var_notify != '' }}"
+    then:
+      - service: "{{ var_notify }}"
+        data:
+          message: "Dira Shabat almuerzo → ejecutado @ {{ now().strftime('%H:%M') }}"

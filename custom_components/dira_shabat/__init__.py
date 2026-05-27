@@ -121,6 +121,40 @@ async def _async_install_card(hass: HomeAssistant) -> None:
         _LOGGER.debug("Could not add extra JS URL: %s", err)
 
 
+async def _async_install_blueprints(hass: HomeAssistant) -> None:
+    """Copy bundled blueprints to /config/blueprints/automation/dira_shabat/.
+
+    Always overwrites if content differs so updates flow on each HA restart.
+    User customizations belong in the *automations* that consume the blueprint,
+    not in the blueprint file itself.
+    """
+    src_dir = Path(__file__).parent / "blueprints" / "automation"
+    if not src_dir.is_dir():
+        return
+    dst_dir = Path(hass.config.path("blueprints", "automation", DOMAIN))
+
+    def _copy_all() -> tuple[int, int]:
+        dst_dir.mkdir(parents=True, exist_ok=True)
+        copied = unchanged = 0
+        for src in src_dir.glob("*.yaml"):
+            dst = dst_dir / src.name
+            if dst.exists() and dst.read_bytes() == src.read_bytes():
+                unchanged += 1
+                continue
+            shutil.copy2(src, dst)
+            copied += 1
+        return copied, unchanged
+
+    try:
+        copied, unchanged = await hass.async_add_executor_job(_copy_all)
+        _LOGGER.info(
+            "Blueprints installed at %s (copied=%d, unchanged=%d)",
+            dst_dir, copied, unchanged,
+        )
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Could not install blueprints: %s", err)
+
+
 @callback
 def _migrate_unique_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Rename old Spanish unique_id suffixes to the new English ones.
@@ -160,9 +194,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _migrate_unique_ids(hass, entry)
 
-    # Install the Lovelace card automatically
+    # Install the Lovelace card + blueprints automatically
     if not hass.data[DOMAIN].get("frontend_registered"):
         await _async_install_card(hass)
+        await _async_install_blueprints(hass)
         hass.data[DOMAIN]["frontend_registered"] = True
 
     diaspora = entry.data.get(CONF_DIASPORA, DEFAULT_DIASPORA)
