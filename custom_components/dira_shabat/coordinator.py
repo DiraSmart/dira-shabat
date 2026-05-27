@@ -274,8 +274,17 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         set_language("en")
         now = dt_util.now()
         today = now.date()
-        info = HDateInfo(today, self.diaspora)
         zmanim_today = self._zmanim(today)
+
+        # Hebrew date boundary at shkia (sunset): if past today's shkia,
+        # the Jewish day has already rolled over to the next gregorian date.
+        # Affects holiday, hebrew_date, omer, parasha, daf_yomi and Tehilim.
+        shkia_today = _to_dt(zmanim_today.shkia)
+        if shkia_today and now >= shkia_today:
+            hebrew_effective_date = today + timedelta(days=1)
+        else:
+            hebrew_effective_date = today
+        info = HDateInfo(hebrew_effective_date, self.diaspora)
 
         # Find the upcoming Shabbat/Yom Tov period
         upcoming = info.upcoming_shabbat_or_yom_tov
@@ -411,7 +420,7 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
             daf_yomi = ""
 
         # Tehilim
-        tehilim = _tehilim_for_today(today, day_of_month)
+        tehilim = _tehilim_for_today(hebrew_effective_date, day_of_month)
 
         # Shabat Mevarchim
         mevarchim = _next_shabbat_mevarchim(today, self.diaspora)
