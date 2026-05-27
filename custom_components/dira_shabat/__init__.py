@@ -113,10 +113,10 @@ async def _async_install_card(hass: HomeAssistant) -> None:
     except Exception as err:  # noqa: BLE001
         _LOGGER.debug("Could not register Lovelace resource: %s", err)
 
-    # Always inject via frontend as a safety net
+    # Inject via frontend as a safety net (uses the versioned URL)
     try:
         from homeassistant.components.frontend import add_extra_js_url
-        add_extra_js_url(hass, CARD_URL)
+        add_extra_js_url(hass, card_url)
     except Exception as err:  # noqa: BLE001
         _LOGGER.debug("Could not add extra JS URL: %s", err)
 

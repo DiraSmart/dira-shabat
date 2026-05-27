@@ -276,9 +276,14 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         today = now.date()
         zmanim_today = self._zmanim(today)
 
-        # Hebrew date boundary at shkia (sunset): if past today's shkia,
-        # the Jewish day has already rolled over to the next gregorian date.
-        # Affects holiday, hebrew_date, omer, parasha, daf_yomi and Tehilim.
+        # `today_info` drives period detection (must stay anchored to gregorian
+        # today so the "current period" remains the one we're in during the
+        # final hours after shkia of the last day).
+        today_info = HDateInfo(today, self.diaspora)
+
+        # `info` reflects the Hebrew-day-effective date for display sensors
+        # (holiday, omer, parasha, hebrew_date, daf_yomi, tehilim). Rolls
+        # over at shkia, matching the Jewish day boundary.
         shkia_today = _to_dt(zmanim_today.shkia)
         if shkia_today and now >= shkia_today:
             hebrew_effective_date = today + timedelta(days=1)
@@ -286,18 +291,18 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
             hebrew_effective_date = today
         info = HDateInfo(hebrew_effective_date, self.diaspora)
 
-        # Find the upcoming Shabbat/Yom Tov period
-        upcoming = info.upcoming_shabbat_or_yom_tov
-        period_start = upcoming.first_day.gdate  # First day of the period
-        period_end = upcoming.last_day.gdate  # Last day of the period
+        # Find the upcoming Shabbat/Yom Tov period (from today's view).
+        upcoming = today_info.upcoming_shabbat_or_yom_tov
+        period_start = upcoming.first_day.gdate
+        period_end = upcoming.last_day.gdate
 
         # Candle lighting = zmanim of the day BEFORE period_start (erev)
         candle_date = period_start - timedelta(days=1)
         candle_lighting_dt = _to_dt(self._zmanim(candle_date).candle_lighting)
         havdalah_dt = _to_dt(self._zmanim(period_end).havdalah)
 
-        # Shabbat-specific candle lighting & havdalah
-        upcoming_shabbat = info.upcoming_shabbat
+        # Shabbat-specific candle lighting & havdalah (anchored to today's view)
+        upcoming_shabbat = today_info.upcoming_shabbat
         shabbat_date = upcoming_shabbat.gdate
         shabbat_candle_dt = _to_dt(self._zmanim(shabbat_date - timedelta(days=1)).candle_lighting)
         shabbat_havdalah_dt = _to_dt(self._zmanim(shabbat_date).havdalah)
@@ -317,7 +322,7 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         # Current state
         is_issur = zmanim_today.issur_melacha_in_effect(now)
         is_erev = zmanim_today.erev_shabbat_chag(now)
-        is_motzei = self._is_motzei(now, havdalah_dt, is_issur, is_erev)
+        is_motzei = zmanim_today.motzei_shabbat_chag(now)
 
         # Holiday info — filter to religious types and combine if multiple
         religious = [h for h in info.holidays if h.type in RELIGIOUS_TYPES]
@@ -490,20 +495,6 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
             "tehilim_weekly": tehilim["weekly"],
             "fast": fast,
         }
-
-    def _is_motzei(
-        self,
-        now: datetime,
-        havdalah_dt: datetime | None,
-        is_issur: bool,
-        is_erev: bool,
-    ) -> bool:
-        """Return True from havdalah until midnight of the same gregorian day."""
-        if is_issur or is_erev or not havdalah_dt:
-            return False
-        if now < havdalah_dt:
-            return False
-        return now.date() == havdalah_dt.date()
 
     def _calculate_period_days(
         self, candle_dt: datetime | None
