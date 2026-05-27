@@ -336,21 +336,35 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         period_days = self._calculate_period_days(candle_lighting_dt)
 
         # Current day within the period (cena transitions at 06:00 AM, almuerzo one day behind)
+        # Day-number calculations.
+        #
+        # Day K dinner happens evening of (velas_date + K - 1).
+        # Day K lunch  happens midday  of (velas_date + K).
+        #
+        # Cena transitions at 06:00 each morning ("preview tonight's dinner").
+        # Almuerzo transitions at 06:00 each morning ("today's lunch").
+        # Before 06:00 we treat the date as the previous day.
+        #
+        # Example for a 2-day chag with velas Thursday 18:10:
+        #   Thu 18:10 → Fri 05:59: cena=1, almuerzo=0 (no lunch in period yet)
+        #   Fri 06:00 → Sat 05:59: cena=2, almuerzo=1 (Fri lunch = Day 1)
+        #   Sat 06:00 → end:       cena=0, almuerzo=2 (Sat lunch = Day 2, no more dinners)
         current_day_cena = 0
         current_day_almuerzo = 0
         current_day_name = ""
+        num_days = len(period_days)
         if is_issur and candle_lighting_dt and now >= candle_lighting_dt:
-            first_morning_6am = (candle_lighting_dt + timedelta(days=1)).replace(
-                hour=6, minute=0, second=0, microsecond=0
-            )
-            if now < first_morning_6am:
-                current_day_cena = 1
-            else:
-                days_since = (now - first_morning_6am).days + 2
-                current_day_cena = min(days_since, len(period_days))
-            current_day_almuerzo = max(1, current_day_cena - 1)
-            if 0 < current_day_cena <= len(period_days):
-                current_day_name = period_days[current_day_cena - 1].get("day_name", "")
+            effective_date = now.date() - timedelta(days=1) if now.hour < 6 else now.date()
+            days_from_velas = (effective_date - candle_lighting_dt.date()).days
+            raw_cena = days_from_velas + 1
+            raw_almuerzo = days_from_velas
+            if 1 <= raw_cena <= num_days:
+                current_day_cena = raw_cena
+            if 1 <= raw_almuerzo <= num_days:
+                current_day_almuerzo = raw_almuerzo
+            active = current_day_cena or current_day_almuerzo
+            if 0 < active <= num_days:
+                current_day_name = period_days[active - 1].get("day_name", "")
 
         # Tomorrow issur melacha
         tomorrow = today + timedelta(days=1)
@@ -432,7 +446,7 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
             "tomorrow_issur": tomorrow_issur,
             "ultimo_dia": ultimo_dia,
             "show_card": show_card,
-            "current_day": current_day_cena,
+            "current_day": current_day_cena or current_day_almuerzo,
             "current_day_cena": current_day_cena,
             "current_day_almuerzo": current_day_almuerzo,
             "current_day_name": current_day_name,
