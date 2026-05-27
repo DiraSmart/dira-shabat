@@ -484,11 +484,12 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         is_issur: bool,
         is_erev: bool,
     ) -> bool:
-        """Return True if we're in the 'motzei' window (just after havdalah, ~45 min)."""
+        """Return True from havdalah until midnight of the same gregorian day."""
         if is_issur or is_erev or not havdalah_dt:
             return False
-        minutes_since = (now - havdalah_dt).total_seconds() / 60
-        return 0 < minutes_since < 45
+        if now < havdalah_dt:
+            return False
+        return now.date() == havdalah_dt.date()
 
     def _calculate_period_days(
         self, candle_dt: datetime | None
