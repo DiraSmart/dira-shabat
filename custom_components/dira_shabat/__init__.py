@@ -12,6 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState, HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.storage import Store
 
 from .const import (
     CONF_CANDLE_LIGHTING_OFFSET,
@@ -34,6 +35,8 @@ _LOGGER = logging.getLogger(__name__)
 CARD_FILENAME = "dira-shabat-card.js"
 CARD_URL_BASE = f"/local/{CARD_FILENAME}"
 CARD_URL_FALLBACK = f"/{DOMAIN}_files/{CARD_FILENAME}"
+
+STORAGE_VERSION = 1
 
 
 def _get_version() -> str:
@@ -179,16 +182,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "prev_issur": None,
     }
 
-    # Wait for HA to be fully started before wiring listeners
-    def _wire_listeners() -> None:
-        _setup_issur_listener(hass, entry, coordinator)
-        _setup_vacation_listener(hass, entry)
+    # Issur listener uses Store-backed persistence so restart-during-havdalah
+    # is recovered on next coordinator update. Must be wired BEFORE the first
+    # refresh so the listener sees that update.
+    await _setup_issur_persistence_and_listener(hass, entry, coordinator)
 
+    # Vacation listener uses HA state-change events; wait for HA started.
     if hass.state is CoreState.running:
-        _wire_listeners()
+        _setup_vacation_listener(hass, entry)
     else:
         async def _on_started(event):
-            _wire_listeners()
+            _setup_vacation_listener(hass, entry)
 
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _on_started)
 
@@ -202,25 +206,38 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-def _setup_issur_listener(
+async def _setup_issur_persistence_and_listener(
     hass: HomeAssistant,
     entry: ConfigEntry,
     coordinator: DiraShabatCoordinator,
 ) -> None:
-    """Listen to coordinator updates; fire reset when issur flips on→off."""
+    """Persist prev_issur across restarts, then listen for issur transitions.
+
+    The Store-backed prev_issur lets us recover the ON → OFF flank even when
+    HA happens to be down during havdalah. On the next coordinator update,
+    we see prev=True (loaded from disk) and current=False and fire the reset.
+    """
     reset_delay = entry.data.get(CONF_RESET_DELAY, DEFAULT_RESET_DELAY)
+    store: Store = Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry.entry_id}_state")
+    stored = await store.async_load() or {}
+    entry_data = hass.data[DOMAIN][entry.entry_id]
+    entry_data["prev_issur"] = stored.get("prev_issur")
+    entry_data["_store"] = store
 
     @callback
     def _on_update():
         data = coordinator.data or {}
         current = bool(data.get("issur_melacha", False))
-        entry_data = hass.data[DOMAIN][entry.entry_id]
         prev = entry_data.get("prev_issur")
+        if prev == current:
+            return
         entry_data["prev_issur"] = current
-
+        hass.async_create_task(store.async_save({"prev_issur": current}))
         if prev is True and current is False:
             _LOGGER.info(
-                "Issur melacha ended. Scheduling reset in %s seconds", reset_delay
+                "Issur melacha ended (prev_issur=True, current=False); "
+                "scheduling reset in %s seconds",
+                reset_delay,
             )
             hass.async_create_task(_async_reset_after_delay(hass, entry, reset_delay))
 
