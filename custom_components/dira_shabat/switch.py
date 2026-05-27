@@ -395,12 +395,14 @@ class DiraShabatDefaultMealSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity
 class DiraShabatOptionSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
     """Generic user-configurable switch shown in the card.
 
-    The user renames the friendly_name from the HA UI to whatever they need
-    (e.g. "Guest Room", "Extra Guests", "Heater", etc.) and the card picks
-    up that name automatically.
+    Disabled in the entity registry by default — the user enables it from
+    the HA UI when they want to use it (e.g. for 'Guest Room', 'Extra Heater'),
+    then renames the friendly_name. The Lovelace card automatically picks it
+    up once enabled.
     """
 
     _attr_has_entity_name = True
+    _attr_entity_registry_enabled_default = False
 
     def __init__(
         self,
