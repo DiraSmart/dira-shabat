@@ -325,11 +325,25 @@ class DiraShabatCoordinator(DataUpdateCoordinator):
         holiday_id = ", ".join(h.name for h in religious)
         is_yom_tov = any(h.type == HolidayTypes.YOM_TOV for h in religious)
 
-        # Status
-        if is_issur and is_yom_tov:
-            status = f"Jag - {holiday_name}" if holiday_name else "Jag"
-        elif is_issur:
-            status = "Shabat"
+        # Status. During the velas → shkia window of an Erev Yom Tov, issur is
+        # already active but the Hebrew date hasn't rolled yet, so info.holidays
+        # still reports "Erev <Yom Tov>" not the Yom Tov itself. Look at the
+        # next gregorian day to surface the right chag name.
+        if is_issur:
+            if is_yom_tov:
+                yt_names = [str(h) for h in religious if h.type == HolidayTypes.YOM_TOV]
+                yt_label = ", ".join(yt_names) if yt_names else holiday_name
+                status = f"Jag - {yt_label}" if yt_label else "Jag"
+            else:
+                tomorrow_info = HDateInfo(today + timedelta(days=1), self.diaspora)
+                tomorrow_yt = [
+                    str(h) for h in tomorrow_info.holidays
+                    if h.type == HolidayTypes.YOM_TOV
+                ]
+                if tomorrow_yt:
+                    status = f"Jag - {', '.join(tomorrow_yt)}"
+                else:
+                    status = "Shabat"
         else:
             status = "Jol"
 
