@@ -21,19 +21,27 @@ blueprint:
       collapsed: true
       input:
         hora_helper:
-          name: Helper input_datetime / sensor de hora
+          name: Helper input_datetime
           description: >
             Si se selecciona, ignora la "Hora fija" y usa el valor de
-            esta entidad. Acepta cualquier input_datetime con hora,
-            o los sensores de velas / havdalá de Dira Shabat.
+            este input_datetime con hora. Útil para una hora editable
+            desde un dashboard.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: input_datetime
+        hora_helper_dira:
+          name: Helper sensor Dira Shabat (alternativa)
+          description: >
+            Velas o havdalá del día. Tiene prioridad sobre el helper
+            de arriba si están ambos seteados.
           default: ""
           selector:
             entity:
               include_entities:
                 - sensor.dira_shabat_candle_lighting
                 - sensor.dira_shabat_havdalah
-              filter:
-                - domain: input_datetime
         offset_min:
           name: Desfase (minutos)
           description: >
@@ -413,7 +421,9 @@ mode: single
 
 trigger_variables:
   var_time: !input hora
-  var_helper: !input hora_helper
+  var_helper_dt: !input hora_helper
+  var_helper_dira: !input hora_helper_dira
+  var_helper: "{{ var_helper_dira if var_helper_dira else var_helper_dt }}"
   var_offset: !input offset_min
 
 variables:
@@ -431,7 +441,9 @@ variables:
   var_airc_mode_2: !input airc_mode_2
   var_airc_fan_mode: !input airc_fan_mode
   var_airc_fan_mode_2: !input airc_fan_mode_2
-  var_helper_var: !input hora_helper
+  var_helper_dt_var: !input hora_helper
+  var_helper_dira_var: !input hora_helper_dira
+  var_helper_var: "{{ var_helper_dira_var if var_helper_dira_var else var_helper_dt_var }}"
   var_permitir_erev: !input permitir_erev
   var_respeto_override: !input respeto_override
   var_time_var: !input hora
