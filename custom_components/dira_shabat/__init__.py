@@ -133,9 +133,10 @@ async def _async_install_blueprints(hass: HomeAssistant) -> None:
         return
     dst_dir = Path(hass.config.path("blueprints", "automation", DOMAIN))
 
-    def _copy_all() -> tuple[int, int]:
+    def _copy_all() -> tuple[int, int, int]:
         dst_dir.mkdir(parents=True, exist_ok=True)
-        copied = unchanged = 0
+        src_names = {f.name for f in src_dir.glob("*.yaml")}
+        copied = unchanged = removed = 0
         for src in src_dir.glob("*.yaml"):
             dst = dst_dir / src.name
             if dst.exists() and dst.read_bytes() == src.read_bytes():
@@ -143,13 +144,18 @@ async def _async_install_blueprints(hass: HomeAssistant) -> None:
                 continue
             shutil.copy2(src, dst)
             copied += 1
-        return copied, unchanged
+        # Remove stale yamls that are no longer shipped (e.g. renamed)
+        for old in dst_dir.glob("*.yaml"):
+            if old.name not in src_names:
+                old.unlink()
+                removed += 1
+        return copied, unchanged, removed
 
     try:
-        copied, unchanged = await hass.async_add_executor_job(_copy_all)
+        copied, unchanged, removed = await hass.async_add_executor_job(_copy_all)
         _LOGGER.info(
-            "Blueprints installed at %s (copied=%d, unchanged=%d)",
-            dst_dir, copied, unchanged,
+            "Blueprints installed at %s (copied=%d, unchanged=%d, removed=%d)",
+            dst_dir, copied, unchanged, removed,
         )
     except Exception as err:  # noqa: BLE001
         _LOGGER.warning("Could not install blueprints: %s", err)

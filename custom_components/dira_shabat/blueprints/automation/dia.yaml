@@ -1,11 +1,11 @@
 blueprint:
-  name: Dira Shabat — Almuerzo
+  name: Dira Shabat — Día
   description: >
-    Acciones (luces, switches, A/C) en un horario específico durante issur
-    melacha, opcionalmente condicionadas por el almuerzo del día actual (en casa
-    / afuera) y otros filtros avanzados.
+    Acciones diurnas (luces, switches, ventiladores, cortinas, A/C) durante
+    issur melacha. El filtro de almuerzo (Casa / Afuera) sigue disponible para
+    condicionar las acciones según si almorzamos en casa o no.
   domain: automation
-  source_url: https://github.com/DiraSmart/dira-shabat/blob/master/custom_components/dira_shabat/blueprints/automation/almuerzo.yaml
+  source_url: https://github.com/DiraSmart/dira-shabat/blob/master/custom_components/dira_shabat/blueprints/automation/dia.yaml
   input:
     hora:
       name: Hora fija
@@ -790,5 +790,5 @@ action:
     then:
       - service: "{{ var_notify }}"
         data:
-          message: "Dira Shabat almuerzo → ejecutado @ {{ now().strftime('%H:%M') }}"
+          message: "Dira Shabat día → ejecutado @ {{ now().strftime('%H:%M') }}"
         continue_on_error: true

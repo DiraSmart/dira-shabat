@@ -1,11 +1,12 @@
 blueprint:
-  name: Dira Shabat — Cena
+  name: Dira Shabat — Noche
   description: >
-    Acciones (luces, switches, A/C) en un horario específico durante issur
-    melacha, opcionalmente condicionadas por la cena del día actual (en casa /
-    afuera) y otros filtros avanzados.
+    Acciones nocturnas (luces, switches, ventiladores, cortinas, A/C) durante
+    issur melacha o, opcionalmente, durante Erev Shabat/Jag. El filtro de cena
+    (Casa / Afuera) sigue disponible para condicionar las acciones según si
+    cenamos en casa o no.
   domain: automation
-  source_url: https://github.com/DiraSmart/dira-shabat/blob/master/custom_components/dira_shabat/blueprints/automation/cena.yaml
+  source_url: https://github.com/DiraSmart/dira-shabat/blob/master/custom_components/dira_shabat/blueprints/automation/noche.yaml
   input:
     hora:
       name: Hora fija
@@ -791,5 +792,5 @@ action:
     then:
       - service: "{{ var_notify }}"
         data:
-          message: "Dira Shabat cena → ejecutado @ {{ now().strftime('%H:%M') }}"
+          message: "Dira Shabat noche → ejecutado @ {{ now().strftime('%H:%M') }}"
         continue_on_error: true
