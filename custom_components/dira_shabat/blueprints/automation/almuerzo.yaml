@@ -140,7 +140,9 @@ blueprint:
                 domain:
                   - climate
         temp_to_set:
-          name: Temperatura
+          name: Temperatura fija
+          description: >
+            Ignorada si elegís un helper en "Helper de temperatura".
           default: 22
           selector:
             number:
@@ -149,6 +151,18 @@ blueprint:
               unit_of_measurement: °C
               step: 1
               mode: slider
+        temp_entity:
+          name: Helper de temperatura (opcional)
+          description: >
+            Si se selecciona, ignora la "Temperatura fija" y usa el valor
+            de este input_number / number.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain:
+                    - input_number
+                    - number
     climate_off_settings:
       name: A/C a apagar
       icon: mdi:fan-off
@@ -176,6 +190,7 @@ variables:
   var_skip_ends: !input skip_ends_today
   var_notify: !input notify_target
   var_temp: !input temp_to_set
+  var_temp_entity: !input temp_entity
   var_helper_var: !input hora_helper
 
 trigger:
@@ -269,7 +284,13 @@ action:
       - service: climate.set_temperature
         data:
           hvac_mode: cool
-          temperature: "{{ var_temp }}"
+          temperature: >-
+            {% if var_temp_entity %}
+              {% set v = states(var_temp_entity) %}
+              {{ (v | float(var_temp)) if v not in ['unknown','unavailable'] else var_temp }}
+            {% else %}
+              {{ var_temp }}
+            {% endif %}
         target: !input airc_on
   - if:
       - "{{ (airc_off | default([])) != [] }}"
