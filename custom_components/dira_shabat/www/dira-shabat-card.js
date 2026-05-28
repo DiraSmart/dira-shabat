@@ -179,6 +179,19 @@ const CARD_CSS = `
     gap: 10px;
     padding: 4px 0;
   }
+  .option-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .option-icon {
+    --mdc-icon-size: 18px;
+    line-height: 1;
+    color: var(--accent);
+    flex: 0 0 auto;
+  }
   .option-label {
     font-size: 13px;
     font-weight: 500;
@@ -503,7 +516,8 @@ class DiraShabatCard extends HTMLElement {
         const state = this._getState(entityId);
         if (!state) return null;
         const label = state.attributes?.friendly_name || `Option ${n}`;
-        return { entity: entityId, label, on: state.state === "on" };
+        const icon = state.attributes?.icon || "";
+        return { entity: entityId, label, icon, on: state.state === "on" };
       })
       .filter(Boolean);
 
@@ -511,7 +525,10 @@ class DiraShabatCard extends HTMLElement {
       .map(
         (o) => `
         <div class="option-row">
-          <span class="option-label">${o.label}</span>
+          <div class="option-info">
+            ${o.icon ? `<span class="option-icon"><ha-icon icon="${o.icon}"></ha-icon></span>` : ""}
+            <span class="option-label">${o.label}</span>
+          </div>
           <div class="pill ${o.on ? "on" : ""}" data-entity="${o.entity}">${o.on ? t.on : t.off}</div>
         </div>
       `,
