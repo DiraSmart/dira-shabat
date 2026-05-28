@@ -24,17 +24,16 @@ blueprint:
           name: Helper input_datetime / sensor de hora
           description: >
             Si se selecciona, ignora la "Hora fija" y usa el valor de
-            esta entidad. Recomendados:
-            • input_datetime con hora (editable desde un dashboard)
-            • sensor.dira_shabat_candle_lighting (velas del día)
-            • sensor.dira_shabat_havdalah (havdalá del día)
+            esta entidad. Acepta cualquier input_datetime con hora,
+            o los sensores de velas / havdalá de Dira Shabat.
           default: ""
           selector:
             entity:
+              include_entities:
+                - sensor.dira_shabat_candle_lighting
+                - sensor.dira_shabat_havdalah
               filter:
                 - domain: input_datetime
-                - domain: sensor
-                  integration: dira_shabat
         offset_min:
           name: Desfase (minutos)
           description: >
