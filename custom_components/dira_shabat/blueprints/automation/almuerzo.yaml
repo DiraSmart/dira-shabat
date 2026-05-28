@@ -91,6 +91,16 @@ blueprint:
           default: ""
           selector:
             text:
+        respeto_override:
+          name: Respetar override manual en retries
+          description: >
+            Default ON. En los retries (+3 y +6 min), si una entidad fue
+            tocada por el usuario después de la hora programada, no se
+            la vuelve a tocar. Solo aplica a retries — el primer disparo
+            siempre actúa.
+          default: true
+          selector:
+            boolean:
 
     lights_on_settings:
       name: Luces a encender
@@ -407,6 +417,21 @@ variables:
   var_airc_fan_mode: !input airc_fan_mode
   var_airc_fan_mode_2: !input airc_fan_mode_2
   var_helper_var: !input hora_helper
+  var_respeto_override: !input respeto_override
+  var_time_var: !input hora
+  var_offset_var: !input offset_min
+  scheduled_time: >-
+    {% if var_helper_var %}
+      {% set raw = states(var_helper_var) %}
+      {% if raw and raw not in ['unknown','unavailable'] %}
+        {% set tp = raw.split(' ')[-1] %}
+        {{ today_at(tp) + timedelta(minutes=var_offset_var | int(0)) }}
+      {% else %}
+        {{ today_at(var_time_var) }}
+      {% endif %}
+    {% else %}
+      {{ today_at(var_time_var) }}
+    {% endif %}
   light_on: !input light_on
   light_off: !input light_off
   switch_on: !input switch_on
@@ -497,115 +522,250 @@ action:
   - if:
       - "{{ (light_on | default({})) | length > 0 }}"
     then:
-      - if:
-          - "{{ (var_transition | int(0)) > 0 }}"
-        then:
-          - service: light.turn_on
-            data:
-              brightness_pct: "{{ var_brightness | int(100) }}"
-              transition: "{{ var_transition | int(0) }}"
-            target: !input light_on
-            continue_on_error: true
-        else:
-          - service: light.turn_on
-            data:
-              brightness_pct: "{{ var_brightness | int(100) }}"
-            target: !input light_on
-            continue_on_error: true
+      - repeat:
+          for_each: >-
+            {% set r = light_on.entity_id | default([]) %}
+            {{ ([r] if r is string else r) }}
+          sequence:
+            - if:
+                - >-
+                  {{ not var_respeto_override
+                     or trigger.id in ['fija', 'helper']
+                     or states[repeat.item].last_changed <= scheduled_time }}
+              then:
+                - if:
+                    - "{{ (var_transition | int(0)) > 0 }}"
+                  then:
+                    - service: light.turn_on
+                      data:
+                        brightness_pct: "{{ var_brightness | int(100) }}"
+                        transition: "{{ var_transition | int(0) }}"
+                      target:
+                        entity_id: "{{ repeat.item }}"
+                      continue_on_error: true
+                  else:
+                    - service: light.turn_on
+                      data:
+                        brightness_pct: "{{ var_brightness | int(100) }}"
+                      target:
+                        entity_id: "{{ repeat.item }}"
+                      continue_on_error: true
   - if:
       - "{{ (light_off | default({})) | length > 0 }}"
     then:
-      - service: light.turn_off
-        target: !input light_off
-        continue_on_error: true
+      - repeat:
+          for_each: >-
+            {% set r = light_off.entity_id | default([]) %}
+            {{ ([r] if r is string else r) }}
+          sequence:
+            - if:
+                - >-
+                  {{ not var_respeto_override
+                     or trigger.id in ['fija', 'helper']
+                     or states[repeat.item].last_changed <= scheduled_time }}
+              then:
+                - service: light.turn_off
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  continue_on_error: true
   - if:
       - "{{ (switch_on | default({})) | length > 0 }}"
     then:
-      - service: switch.turn_on
-        target: !input switch_on
-        continue_on_error: true
+      - repeat:
+          for_each: >-
+            {% set r = switch_on.entity_id | default([]) %}
+            {{ ([r] if r is string else r) }}
+          sequence:
+            - if:
+                - >-
+                  {{ not var_respeto_override
+                     or trigger.id in ['fija', 'helper']
+                     or states[repeat.item].last_changed <= scheduled_time }}
+              then:
+                - service: switch.turn_on
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  continue_on_error: true
   - if:
       - "{{ (switch_off | default({})) | length > 0 }}"
     then:
-      - service: switch.turn_off
-        target: !input switch_off
-        continue_on_error: true
+      - repeat:
+          for_each: >-
+            {% set r = switch_off.entity_id | default([]) %}
+            {{ ([r] if r is string else r) }}
+          sequence:
+            - if:
+                - >-
+                  {{ not var_respeto_override
+                     or trigger.id in ['fija', 'helper']
+                     or states[repeat.item].last_changed <= scheduled_time }}
+              then:
+                - service: switch.turn_off
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  continue_on_error: true
   - if:
       - "{{ (fan_on | default({})) | length > 0 }}"
     then:
-      - service: fan.turn_on
-        target: !input fan_on
-        continue_on_error: true
+      - repeat:
+          for_each: >-
+            {% set r = fan_on.entity_id | default([]) %}
+            {{ ([r] if r is string else r) }}
+          sequence:
+            - if:
+                - >-
+                  {{ not var_respeto_override
+                     or trigger.id in ['fija', 'helper']
+                     or states[repeat.item].last_changed <= scheduled_time }}
+              then:
+                - service: fan.turn_on
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  continue_on_error: true
   - if:
       - "{{ (fan_off | default({})) | length > 0 }}"
     then:
-      - service: fan.turn_off
-        target: !input fan_off
-        continue_on_error: true
+      - repeat:
+          for_each: >-
+            {% set r = fan_off.entity_id | default([]) %}
+            {{ ([r] if r is string else r) }}
+          sequence:
+            - if:
+                - >-
+                  {{ not var_respeto_override
+                     or trigger.id in ['fija', 'helper']
+                     or states[repeat.item].last_changed <= scheduled_time }}
+              then:
+                - service: fan.turn_off
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  continue_on_error: true
   - if:
       - "{{ (cover_open | default({})) | length > 0 }}"
     then:
-      - service: cover.open_cover
-        target: !input cover_open
-        continue_on_error: true
+      - repeat:
+          for_each: >-
+            {% set r = cover_open.entity_id | default([]) %}
+            {{ ([r] if r is string else r) }}
+          sequence:
+            - if:
+                - >-
+                  {{ not var_respeto_override
+                     or trigger.id in ['fija', 'helper']
+                     or states[repeat.item].last_changed <= scheduled_time }}
+              then:
+                - service: cover.open_cover
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  continue_on_error: true
   - if:
       - "{{ (cover_close | default({})) | length > 0 }}"
     then:
-      - service: cover.close_cover
-        target: !input cover_close
-        continue_on_error: true
+      - repeat:
+          for_each: >-
+            {% set r = cover_close.entity_id | default([]) %}
+            {{ ([r] if r is string else r) }}
+          sequence:
+            - if:
+                - >-
+                  {{ not var_respeto_override
+                     or trigger.id in ['fija', 'helper']
+                     or states[repeat.item].last_changed <= scheduled_time }}
+              then:
+                - service: cover.close_cover
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  continue_on_error: true
   - if:
       - "{{ (airc_on | default({})) | length > 0 }}"
     then:
-      - service: climate.set_temperature
-        data:
-          hvac_mode: "{{ var_airc_mode | default('cool') }}"
-          temperature: >-
-            {% if var_temp_entity %}
-              {% set v = states(var_temp_entity) %}
-              {{ (v | float(var_temp)) if v not in ['unknown','unavailable'] else var_temp }}
-            {% else %}
-              {{ var_temp }}
-            {% endif %}
-        target: !input airc_on
-        continue_on_error: true
-  - if:
-      - "{{ (airc_on | default({})) | length > 0 and var_airc_fan_mode != '' }}"
-    then:
-      - service: climate.set_fan_mode
-        data:
-          fan_mode: "{{ var_airc_fan_mode }}"
-        target: !input airc_on
-        continue_on_error: true
+      - repeat:
+          for_each: >-
+            {% set r = airc_on.entity_id | default([]) %}
+            {{ ([r] if r is string else r) }}
+          sequence:
+            - if:
+                - >-
+                  {{ not var_respeto_override
+                     or trigger.id in ['fija', 'helper']
+                     or states[repeat.item].last_changed <= scheduled_time }}
+              then:
+                - service: climate.set_temperature
+                  data:
+                    hvac_mode: "{{ var_airc_mode | default('cool') }}"
+                    temperature: >-
+                      {% if var_temp_entity %}
+                        {% set v = states(var_temp_entity) %}
+                        {{ (v | float(var_temp)) if v not in ['unknown','unavailable'] else var_temp }}
+                      {% else %}
+                        {{ var_temp }}
+                      {% endif %}
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  continue_on_error: true
+                - if:
+                    - "{{ var_airc_fan_mode != '' }}"
+                  then:
+                    - service: climate.set_fan_mode
+                      data:
+                        fan_mode: "{{ var_airc_fan_mode }}"
+                      target:
+                        entity_id: "{{ repeat.item }}"
+                      continue_on_error: true
   - if:
       - "{{ (airc_on_2 | default({})) | length > 0 }}"
     then:
-      - service: climate.set_temperature
-        data:
-          hvac_mode: "{{ var_airc_mode_2 | default('cool') }}"
-          temperature: >-
-            {% if var_temp_entity_2 %}
-              {% set v = states(var_temp_entity_2) %}
-              {{ (v | float(var_temp_2)) if v not in ['unknown','unavailable'] else var_temp_2 }}
-            {% else %}
-              {{ var_temp_2 }}
-            {% endif %}
-        target: !input airc_on_2
-        continue_on_error: true
-  - if:
-      - "{{ (airc_on_2 | default({})) | length > 0 and var_airc_fan_mode_2 != '' }}"
-    then:
-      - service: climate.set_fan_mode
-        data:
-          fan_mode: "{{ var_airc_fan_mode_2 }}"
-        target: !input airc_on_2
-        continue_on_error: true
+      - repeat:
+          for_each: >-
+            {% set r = airc_on_2.entity_id | default([]) %}
+            {{ ([r] if r is string else r) }}
+          sequence:
+            - if:
+                - >-
+                  {{ not var_respeto_override
+                     or trigger.id in ['fija', 'helper']
+                     or states[repeat.item].last_changed <= scheduled_time }}
+              then:
+                - service: climate.set_temperature
+                  data:
+                    hvac_mode: "{{ var_airc_mode_2 | default('cool') }}"
+                    temperature: >-
+                      {% if var_temp_entity_2 %}
+                        {% set v = states(var_temp_entity_2) %}
+                        {{ (v | float(var_temp_2)) if v not in ['unknown','unavailable'] else var_temp_2 }}
+                      {% else %}
+                        {{ var_temp_2 }}
+                      {% endif %}
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  continue_on_error: true
+                - if:
+                    - "{{ var_airc_fan_mode_2 != '' }}"
+                  then:
+                    - service: climate.set_fan_mode
+                      data:
+                        fan_mode: "{{ var_airc_fan_mode_2 }}"
+                      target:
+                        entity_id: "{{ repeat.item }}"
+                      continue_on_error: true
   - if:
       - "{{ (airc_off | default({})) | length > 0 }}"
     then:
-      - service: climate.turn_off
-        target: !input airc_off
-        continue_on_error: true
+      - repeat:
+          for_each: >-
+            {% set r = airc_off.entity_id | default([]) %}
+            {{ ([r] if r is string else r) }}
+          sequence:
+            - if:
+                - >-
+                  {{ not var_respeto_override
+                     or trigger.id in ['fija', 'helper']
+                     or states[repeat.item].last_changed <= scheduled_time }}
+              then:
+                - service: climate.turn_off
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  continue_on_error: true
   - if:
       - "{{ var_notify != '' }}"
     then:
