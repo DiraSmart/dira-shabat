@@ -235,6 +235,7 @@ blueprint:
           default: cool
           selector:
             select:
+              mode: dropdown
               options:
                 - label: Cool (frío)
                   value: cool
@@ -254,6 +255,7 @@ blueprint:
           default: ""
           selector:
             select:
+              mode: dropdown
               options:
                 - label: "(sin cambio)"
                   value: ""
@@ -312,6 +314,7 @@ blueprint:
           default: cool
           selector:
             select:
+              mode: dropdown
               options:
                 - label: Cool (frío)
                   value: cool
@@ -331,6 +334,7 @@ blueprint:
           default: ""
           selector:
             select:
+              mode: dropdown
               options:
                 - label: "(sin cambio)"
                   value: ""
