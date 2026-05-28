@@ -96,6 +96,17 @@ blueprint:
           default: ""
           selector:
             text:
+        permitir_erev:
+          name: Permitir disparo durante Erev (antes de velas)
+          description: >
+            Default OFF. Si lo activás, la automatización puede correr
+            también durante Erev Shabat/Jag (antes del encendido de
+            velas). Para almuerzo casi nunca aplica (el almuerzo es
+            durante el día de issur). Si lo usás, recordá poner "Día
+            del período = Cualquier día".
+          default: false
+          selector:
+            boolean:
         respeto_override:
           name: Respetar override manual en retries
           description: >
@@ -422,6 +433,7 @@ variables:
   var_airc_fan_mode: !input airc_fan_mode
   var_airc_fan_mode_2: !input airc_fan_mode_2
   var_helper_var: !input hora_helper
+  var_permitir_erev: !input permitir_erev
   var_respeto_override: !input respeto_override
   var_time_var: !input hora
   var_offset_var: !input offset_min
@@ -501,9 +513,11 @@ condition:
   - condition: state
     entity_id: switch.dira_shabat_shabbat_mode
     state: "on"
-  - condition: state
-    entity_id: binary_sensor.dira_shabat_issur_melacha
-    state: "on"
+  - condition: template
+    value_template: >-
+      {{ is_state('binary_sensor.dira_shabat_issur_melacha', 'on')
+         or (var_permitir_erev
+             and is_state('binary_sensor.dira_shabat_erev_shabbat_hag', 'on')) }}
   - condition: template
     value_template: >-
       {% if var_opciones == 'siempre' %} true
