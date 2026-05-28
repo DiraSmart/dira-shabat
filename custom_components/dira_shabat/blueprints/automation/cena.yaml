@@ -215,10 +215,28 @@ blueprint:
               entity:
                 domain:
                   - climate
+        airc_mode:
+          name: Modo
+          description: Modo HVAC al encender. Default = cool.
+          default: cool
+          selector:
+            select:
+              options:
+                - label: Cool (frío)
+                  value: cool
+                - label: Heat (calor)
+                  value: heat
+                - label: Dry (deshumidificar)
+                  value: dry
+                - label: Fan only (solo ventilador)
+                  value: fan_only
+                - label: Auto
+                  value: auto
         temp_to_set:
           name: Temperatura fija
           description: >
-            Ignorada si elegís un helper en "Helper de temperatura".
+            Ignorada si elegís un helper en "Helper de temperatura". En
+            modos sin temperatura (fan_only, dry) se ignora también.
           default: 22
           selector:
             number:
@@ -255,6 +273,23 @@ blueprint:
               entity:
                 domain:
                   - climate
+        airc_mode_2:
+          name: Modo
+          description: Modo HVAC al encender. Default = cool.
+          default: cool
+          selector:
+            select:
+              options:
+                - label: Cool (frío)
+                  value: cool
+                - label: Heat (calor)
+                  value: heat
+                - label: Dry (deshumidificar)
+                  value: dry
+                - label: Fan only (solo ventilador)
+                  value: fan_only
+                - label: Auto
+                  value: auto
         temp_to_set_2:
           name: Temperatura fija
           description: >
@@ -310,6 +345,8 @@ variables:
   var_temp_2: !input temp_to_set_2
   var_temp_entity_2: !input temp_entity_2
   var_brightness: !input light_on_brightness
+  var_airc_mode: !input airc_mode
+  var_airc_mode_2: !input airc_mode_2
   var_helper_var: !input hora_helper
 
 trigger:
@@ -458,7 +495,7 @@ action:
     then:
       - service: climate.set_temperature
         data:
-          hvac_mode: cool
+          hvac_mode: "{{ var_airc_mode | default('cool') }}"
           temperature: >-
             {% if var_temp_entity %}
               {% set v = states(var_temp_entity) %}
@@ -474,7 +511,7 @@ action:
     then:
       - service: climate.set_temperature
         data:
-          hvac_mode: cool
+          hvac_mode: "{{ var_airc_mode_2 | default('cool') }}"
           temperature: >-
             {% if var_temp_entity_2 %}
               {% set v = states(var_temp_entity_2) %}
