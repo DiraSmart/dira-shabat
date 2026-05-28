@@ -21,15 +21,22 @@ blueprint:
       collapsed: true
       input:
         hora_helper:
-          name: Helper input_datetime
+          name: Helper input_datetime / sensor de hora
           description: >
-            Si se selecciona, ignora la "Hora fija" y usa este helper.
-            Debe ser un input_datetime con hora.
+            Si se selecciona, ignora la "Hora fija" y usa el valor de
+            esta entidad. Acepta:
+            • input_datetime con hora (ej: hora editable desde un dashboard)
+            • sensor.dira_shabat_candle_lighting (encendido velas del día)
+            • sensor.dira_shabat_havdalah (havdalá del día)
+            • sensor.dira_shabat_shabbat_candle_lighting (próximas velas Shabat)
+            • sensor.dira_shabat_shabbat_havdalah (próxima havdalá Shabat)
           default: ""
           selector:
             entity:
               filter:
                 - domain: input_datetime
+                - domain: sensor
+                  integration: dira_shabat
         offset_min:
           name: Desfase (minutos)
           description: >
@@ -423,7 +430,7 @@ variables:
   scheduled_time: >-
     {% if var_helper_var %}
       {% set raw = states(var_helper_var) %}
-      {% if raw and raw not in ['unknown','unavailable'] %}
+      {% if raw and raw not in ['unknown','unavailable','--:--'] %}
         {% set tp = raw.split(' ')[-1] %}
         {{ today_at(tp) + timedelta(minutes=var_offset_var | int(0)) }}
       {% else %}
@@ -458,7 +465,7 @@ trigger:
     value_template: >-
       {% if var_helper %}
         {% set raw = states(var_helper) %}
-        {% if raw and raw not in ['unknown','unavailable'] %}
+        {% if raw and raw not in ['unknown','unavailable','--:--'] %}
           {% set tp = raw.split(' ')[-1] %}
           {{ now() >= (today_at(tp) + timedelta(minutes=var_offset | int(0))) }}
         {% else %} false {% endif %}
@@ -468,7 +475,7 @@ trigger:
     value_template: >-
       {% if var_helper %}
         {% set raw = states(var_helper) %}
-        {% if raw and raw not in ['unknown','unavailable'] %}
+        {% if raw and raw not in ['unknown','unavailable','--:--'] %}
           {% set tp = raw.split(' ')[-1] %}
           {{ now() >= (today_at(tp) + timedelta(minutes=(var_offset | int(0)) + 3)) }}
         {% else %} false {% endif %}
@@ -478,7 +485,7 @@ trigger:
     value_template: >-
       {% if var_helper %}
         {% set raw = states(var_helper) %}
-        {% if raw and raw not in ['unknown','unavailable'] %}
+        {% if raw and raw not in ['unknown','unavailable','--:--'] %}
           {% set tp = raw.split(' ')[-1] %}
           {{ now() >= (today_at(tp) + timedelta(minutes=(var_offset | int(0)) + 6)) }}
         {% else %} false {% endif %}
