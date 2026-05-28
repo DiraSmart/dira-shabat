@@ -403,6 +403,17 @@ variables:
   var_airc_fan_mode: !input airc_fan_mode
   var_airc_fan_mode_2: !input airc_fan_mode_2
   var_helper_var: !input hora_helper
+  light_on: !input light_on
+  light_off: !input light_off
+  switch_on: !input switch_on
+  switch_off: !input switch_off
+  fan_on: !input fan_on
+  fan_off: !input fan_off
+  cover_open: !input cover_open
+  cover_close: !input cover_close
+  airc_on: !input airc_on
+  airc_on_2: !input airc_on_2
+  airc_off: !input airc_off
 
 trigger:
   - platform: time
