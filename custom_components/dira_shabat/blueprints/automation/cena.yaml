@@ -8,11 +8,41 @@ blueprint:
   source_url: https://github.com/DiraSmart/dira-shabat/blob/master/custom_components/dira_shabat/blueprints/automation/cena.yaml
   input:
     hora:
-      name: Hora
-      description: A qué hora del día se dispara la acción
+      name: Hora fija
+      description: >
+        A qué hora del día se dispara la acción. Ignorado si elegís un
+        helper en la sección "Helper de hora".
       default: "21:00:00"
       selector:
         time:
+    helper_settings:
+      name: Helper de hora (opcional)
+      icon: mdi:clock-time-four-outline
+      collapsed: true
+      input:
+        hora_helper:
+          name: Helper input_datetime
+          description: >
+            Si se selecciona, ignora la "Hora fija" y usa este helper.
+            Debe ser un input_datetime con hora.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: input_datetime
+        offset_min:
+          name: Desfase (minutos)
+          description: >
+            Aplicado sobre el helper. Positivo = después, negativo =
+            antes. Ej: -15 para encender luces 15 min antes del helper.
+          default: 0
+          selector:
+            number:
+              min: -180
+              max: 180
+              step: 1
+              unit_of_measurement: min
+              mode: box
     opciones:
       name: ¿Depende de la cena?
       description: >
@@ -137,6 +167,8 @@ mode: single
 
 trigger_variables:
   var_time: !input hora
+  var_helper: !input hora_helper
+  var_offset: !input offset_min
 
 variables:
   var_opciones: !input opciones
@@ -144,16 +176,57 @@ variables:
   var_skip_ends: !input skip_ends_today
   var_notify: !input notify_target
   var_temp: !input temp_to_set
+  var_helper_var: !input hora_helper
 
 trigger:
   - platform: time
     at: !input hora
+    id: fija
   - platform: template
     value_template: "{{ now() >= (today_at(var_time) + timedelta(minutes=3)) }}"
+    id: fija_3
   - platform: template
     value_template: "{{ now() >= (today_at(var_time) + timedelta(minutes=6)) }}"
+    id: fija_6
+  - platform: template
+    value_template: >-
+      {% if var_helper %}
+        {% set raw = states(var_helper) %}
+        {% if raw and raw not in ['unknown','unavailable'] %}
+          {% set tp = raw.split(' ')[-1] %}
+          {{ now() >= (today_at(tp) + timedelta(minutes=var_offset | int(0))) }}
+        {% else %} false {% endif %}
+      {% else %} false {% endif %}
+    id: helper
+  - platform: template
+    value_template: >-
+      {% if var_helper %}
+        {% set raw = states(var_helper) %}
+        {% if raw and raw not in ['unknown','unavailable'] %}
+          {% set tp = raw.split(' ')[-1] %}
+          {{ now() >= (today_at(tp) + timedelta(minutes=(var_offset | int(0)) + 3)) }}
+        {% else %} false {% endif %}
+      {% else %} false {% endif %}
+    id: helper_3
+  - platform: template
+    value_template: >-
+      {% if var_helper %}
+        {% set raw = states(var_helper) %}
+        {% if raw and raw not in ['unknown','unavailable'] %}
+          {% set tp = raw.split(' ')[-1] %}
+          {{ now() >= (today_at(tp) + timedelta(minutes=(var_offset | int(0)) + 6)) }}
+        {% else %} false {% endif %}
+      {% else %} false {% endif %}
+    id: helper_6
 
 condition:
+  - condition: template
+    value_template: >-
+      {% if var_helper_var %}
+        {{ trigger.id in ['helper', 'helper_3', 'helper_6'] }}
+      {% else %}
+        {{ trigger.id in ['fija', 'fija_3', 'fija_6'] }}
+      {% endif %}
   - condition: state
     entity_id: switch.dira_shabat_shabbat_mode
     state: "on"
