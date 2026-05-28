@@ -432,56 +432,48 @@ action:
           brightness_pct: "{{ var_brightness | int(100) }}"
         target: !input light_on
         continue_on_error: true
-    continue_on_error: true
   - if:
       - "{{ (light_off | default({})) | length > 0 }}"
     then:
       - service: homeassistant.turn_off
         target: !input light_off
         continue_on_error: true
-    continue_on_error: true
   - if:
       - "{{ (switch_on | default({})) | length > 0 }}"
     then:
       - service: homeassistant.turn_on
         target: !input switch_on
         continue_on_error: true
-    continue_on_error: true
   - if:
       - "{{ (switch_off | default({})) | length > 0 }}"
     then:
       - service: homeassistant.turn_off
         target: !input switch_off
         continue_on_error: true
-    continue_on_error: true
   - if:
       - "{{ (fan_on | default({})) | length > 0 }}"
     then:
       - service: homeassistant.turn_on
         target: !input fan_on
         continue_on_error: true
-    continue_on_error: true
   - if:
       - "{{ (fan_off | default({})) | length > 0 }}"
     then:
       - service: homeassistant.turn_off
         target: !input fan_off
         continue_on_error: true
-    continue_on_error: true
   - if:
       - "{{ (cover_open | default({})) | length > 0 }}"
     then:
       - service: cover.open_cover
         target: !input cover_open
         continue_on_error: true
-    continue_on_error: true
   - if:
       - "{{ (cover_close | default({})) | length > 0 }}"
     then:
       - service: cover.close_cover
         target: !input cover_close
         continue_on_error: true
-    continue_on_error: true
   - if:
       - "{{ (airc_on | default({})) | length > 0 }}"
     then:
@@ -497,7 +489,6 @@ action:
             {% endif %}
         target: !input airc_on
         continue_on_error: true
-    continue_on_error: true
   - if:
       - "{{ (airc_on_2 | default({})) | length > 0 }}"
     then:
@@ -513,14 +504,12 @@ action:
             {% endif %}
         target: !input airc_on_2
         continue_on_error: true
-    continue_on_error: true
   - if:
       - "{{ (airc_off | default({})) | length > 0 }}"
     then:
       - service: climate.turn_off
         target: !input airc_off
         continue_on_error: true
-    continue_on_error: true
   - if:
       - "{{ var_notify != '' }}"
     then:
@@ -528,4 +517,3 @@ action:
         data:
           message: "Dira Shabat almuerzo → ejecutado @ {{ now().strftime('%H:%M') }}"
         continue_on_error: true
-    continue_on_error: true
