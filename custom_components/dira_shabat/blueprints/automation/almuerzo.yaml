@@ -73,12 +73,6 @@ blueprint:
               options:
                 - label: Cualquier día
                   value: cualquiera
-                - label: Solo Día 1
-                  value: "1"
-                - label: Solo Día 2
-                  value: "2"
-                - label: Solo Día 3
-                  value: "3"
                 - label: Solo último día
                   value: ultimo
                 - label: Cualquier día menos el último
