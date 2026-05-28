@@ -118,6 +118,20 @@ blueprint:
               unit_of_measurement: "%"
               step: 1
               mode: slider
+        light_on_transition:
+          name: Fade in (segundos)
+          description: >
+            Tiempo de transición al encender. 0 = instantáneo
+            (comportamiento por default). Útil para que las luces suban
+            suavemente al inicio de cena/almuerzo.
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 60
+              unit_of_measurement: s
+              step: 1
+              mode: slider
     lights_off_settings:
       name: Luces a apagar
       icon: mdi:lightbulb-group-off-outline
@@ -232,6 +246,25 @@ blueprint:
                   value: fan_only
                 - label: Auto
                   value: auto
+        airc_fan_mode:
+          name: Velocidad ventilador
+          description: >
+            Velocidad del ventilador del A/C. "(sin cambio)" no toca lo
+            que ya estaba seteado en el equipo.
+          default: ""
+          selector:
+            select:
+              options:
+                - label: "(sin cambio)"
+                  value: ""
+                - label: Low
+                  value: low
+                - label: Medium
+                  value: medium
+                - label: High
+                  value: high
+                - label: Auto
+                  value: auto
         temp_to_set:
           name: Temperatura fija
           description: >
@@ -290,6 +323,25 @@ blueprint:
                   value: fan_only
                 - label: Auto
                   value: auto
+        airc_fan_mode_2:
+          name: Velocidad ventilador
+          description: >
+            Velocidad del ventilador del A/C. "(sin cambio)" no toca lo
+            que ya estaba seteado en el equipo.
+          default: ""
+          selector:
+            select:
+              options:
+                - label: "(sin cambio)"
+                  value: ""
+                - label: Low
+                  value: low
+                - label: Medium
+                  value: medium
+                - label: High
+                  value: high
+                - label: Auto
+                  value: auto
         temp_to_set_2:
           name: Temperatura fija
           description: >
@@ -345,8 +397,11 @@ variables:
   var_temp_2: !input temp_to_set_2
   var_temp_entity_2: !input temp_entity_2
   var_brightness: !input light_on_brightness
+  var_transition: !input light_on_transition
   var_airc_mode: !input airc_mode
   var_airc_mode_2: !input airc_mode_2
+  var_airc_fan_mode: !input airc_fan_mode
+  var_airc_fan_mode_2: !input airc_fan_mode_2
   var_helper_var: !input hora_helper
 
 trigger:
@@ -427,11 +482,21 @@ action:
   - if:
       - "{{ (light_on | default({})) | length > 0 }}"
     then:
-      - service: homeassistant.turn_on
-        data:
-          brightness_pct: "{{ var_brightness | int(100) }}"
-        target: !input light_on
-        continue_on_error: true
+      - if:
+          - "{{ (var_transition | int(0)) > 0 }}"
+        then:
+          - service: homeassistant.turn_on
+            data:
+              brightness_pct: "{{ var_brightness | int(100) }}"
+              transition: "{{ var_transition | int(0) }}"
+            target: !input light_on
+            continue_on_error: true
+        else:
+          - service: homeassistant.turn_on
+            data:
+              brightness_pct: "{{ var_brightness | int(100) }}"
+            target: !input light_on
+            continue_on_error: true
   - if:
       - "{{ (light_off | default({})) | length > 0 }}"
     then:
@@ -490,6 +555,14 @@ action:
         target: !input airc_on
         continue_on_error: true
   - if:
+      - "{{ (airc_on | default({})) | length > 0 and var_airc_fan_mode != '' }}"
+    then:
+      - service: climate.set_fan_mode
+        data:
+          fan_mode: "{{ var_airc_fan_mode }}"
+        target: !input airc_on
+        continue_on_error: true
+  - if:
       - "{{ (airc_on_2 | default({})) | length > 0 }}"
     then:
       - service: climate.set_temperature
@@ -502,6 +575,14 @@ action:
             {% else %}
               {{ var_temp_2 }}
             {% endif %}
+        target: !input airc_on_2
+        continue_on_error: true
+  - if:
+      - "{{ (airc_on_2 | default({})) | length > 0 and var_airc_fan_mode_2 != '' }}"
+    then:
+      - service: climate.set_fan_mode
+        data:
+          fan_mode: "{{ var_airc_fan_mode_2 }}"
         target: !input airc_on_2
         continue_on_error: true
   - if:
