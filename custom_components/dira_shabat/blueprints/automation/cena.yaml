@@ -121,7 +121,7 @@ blueprint:
                   - light
                   - switch
     climate_on_settings:
-      name: A/C a encender
+      name: A/C a encender (grupo 1)
       icon: mdi:air-conditioner
       collapsed: true
       input:
@@ -146,6 +146,46 @@ blueprint:
               step: 1
               mode: slider
         temp_entity:
+          name: Helper de temperatura (opcional)
+          description: >
+            Si se selecciona, ignora la "Temperatura fija" y usa el valor
+            de este input_number / number.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain:
+                    - input_number
+                    - number
+    climate_on_settings_2:
+      name: A/C a encender (grupo 2)
+      icon: mdi:air-conditioner
+      collapsed: true
+      input:
+        airc_on_2:
+          name: Encender
+          description: >
+            Segundo grupo de A/C, útil si querés setear dos aires
+            distintos a la misma hora con temperaturas diferentes.
+          default: []
+          selector:
+            target:
+              entity:
+                domain:
+                  - climate
+        temp_to_set_2:
+          name: Temperatura fija
+          description: >
+            Ignorada si elegís un helper en "Helper de temperatura".
+          default: 22
+          selector:
+            number:
+              min: 16
+              max: 30
+              unit_of_measurement: °C
+              step: 1
+              mode: slider
+        temp_entity_2:
           name: Helper de temperatura (opcional)
           description: >
             Si se selecciona, ignora la "Temperatura fija" y usa el valor
@@ -185,6 +225,8 @@ variables:
   var_notify: !input notify_target
   var_temp: !input temp_to_set
   var_temp_entity: !input temp_entity
+  var_temp_2: !input temp_to_set_2
+  var_temp_entity_2: !input temp_entity_2
   var_helper_var: !input hora_helper
 
 trigger:
@@ -290,6 +332,22 @@ action:
               {{ var_temp }}
             {% endif %}
         target: !input airc_on
+        continue_on_error: true
+    continue_on_error: true
+  - if:
+      - "{{ (airc_on_2 | default([])) != [] }}"
+    then:
+      - service: climate.set_temperature
+        data:
+          hvac_mode: cool
+          temperature: >-
+            {% if var_temp_entity_2 %}
+              {% set v = states(var_temp_entity_2) %}
+              {{ (v | float(var_temp_2)) if v not in ['unknown','unavailable'] else var_temp_2 }}
+            {% else %}
+              {{ var_temp_2 }}
+            {% endif %}
+        target: !input airc_on_2
         continue_on_error: true
     continue_on_error: true
   - if:
