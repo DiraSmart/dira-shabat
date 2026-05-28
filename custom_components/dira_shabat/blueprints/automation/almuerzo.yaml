@@ -24,12 +24,10 @@ blueprint:
           name: Helper input_datetime / sensor de hora
           description: >
             Si se selecciona, ignora la "Hora fija" y usa el valor de
-            esta entidad. Acepta:
-            • input_datetime con hora (ej: hora editable desde un dashboard)
-            • sensor.dira_shabat_candle_lighting (encendido velas del día)
+            esta entidad. Recomendados:
+            • input_datetime con hora (editable desde un dashboard)
+            • sensor.dira_shabat_candle_lighting (velas del día)
             • sensor.dira_shabat_havdalah (havdalá del día)
-            • sensor.dira_shabat_shabbat_candle_lighting (próximas velas Shabat)
-            • sensor.dira_shabat_shabbat_havdalah (próxima havdalá Shabat)
           default: ""
           selector:
             entity:
