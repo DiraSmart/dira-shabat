@@ -273,11 +273,15 @@ action:
     then:
       - service: homeassistant.turn_on
         target: !input light_on
+        continue_on_error: true
+    continue_on_error: true
   - if:
       - "{{ (light_off | default([])) != [] }}"
     then:
       - service: homeassistant.turn_off
         target: !input light_off
+        continue_on_error: true
+    continue_on_error: true
   - if:
       - "{{ (airc_on | default([])) != [] }}"
     then:
@@ -292,14 +296,20 @@ action:
               {{ var_temp }}
             {% endif %}
         target: !input airc_on
+        continue_on_error: true
+    continue_on_error: true
   - if:
       - "{{ (airc_off | default([])) != [] }}"
     then:
       - service: climate.turn_off
         target: !input airc_off
+        continue_on_error: true
+    continue_on_error: true
   - if:
       - "{{ var_notify != '' }}"
     then:
       - service: "{{ var_notify }}"
         data:
           message: "Dira Shabat cena → ejecutado @ {{ now().strftime('%H:%M') }}"
+        continue_on_error: true
+    continue_on_error: true
