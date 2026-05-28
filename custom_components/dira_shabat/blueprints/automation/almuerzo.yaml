@@ -99,7 +99,7 @@ blueprint:
       input:
         light_on:
           name: Encender
-          default: []
+          default: {}
           selector:
             target:
               entity:
@@ -125,7 +125,7 @@ blueprint:
       input:
         light_off:
           name: Apagar
-          default: []
+          default: {}
           selector:
             target:
               entity:
@@ -137,7 +137,7 @@ blueprint:
       input:
         switch_on:
           name: Encender
-          default: []
+          default: {}
           selector:
             target:
               entity:
@@ -149,7 +149,7 @@ blueprint:
       input:
         switch_off:
           name: Apagar
-          default: []
+          default: {}
           selector:
             target:
               entity:
@@ -161,7 +161,7 @@ blueprint:
       input:
         fan_on:
           name: Encender
-          default: []
+          default: {}
           selector:
             target:
               entity:
@@ -173,7 +173,7 @@ blueprint:
       input:
         fan_off:
           name: Apagar
-          default: []
+          default: {}
           selector:
             target:
               entity:
@@ -185,7 +185,7 @@ blueprint:
       input:
         cover_open:
           name: Abrir
-          default: []
+          default: {}
           selector:
             target:
               entity:
@@ -197,7 +197,7 @@ blueprint:
       input:
         cover_close:
           name: Cerrar
-          default: []
+          default: {}
           selector:
             target:
               entity:
@@ -209,7 +209,7 @@ blueprint:
       input:
         airc_on:
           name: Encender
-          default: []
+          default: {}
           selector:
             target:
               entity:
@@ -267,7 +267,7 @@ blueprint:
           description: >
             Segundo grupo de A/C, útil si querés setear dos aires
             distintos a la misma hora con temperaturas diferentes.
-          default: []
+          default: {}
           selector:
             target:
               entity:
@@ -321,7 +321,7 @@ blueprint:
       input:
         airc_off:
           name: Apagar
-          default: []
+          default: {}
           selector:
             target:
               entity:
@@ -425,7 +425,7 @@ condition:
 
 action:
   - if:
-      - "{{ (light_on | default([])) != [] }}"
+      - "{{ (light_on | default({})) | length > 0 }}"
     then:
       - service: homeassistant.turn_on
         data:
@@ -434,56 +434,56 @@ action:
         continue_on_error: true
     continue_on_error: true
   - if:
-      - "{{ (light_off | default([])) != [] }}"
+      - "{{ (light_off | default({})) | length > 0 }}"
     then:
       - service: homeassistant.turn_off
         target: !input light_off
         continue_on_error: true
     continue_on_error: true
   - if:
-      - "{{ (switch_on | default([])) != [] }}"
+      - "{{ (switch_on | default({})) | length > 0 }}"
     then:
       - service: homeassistant.turn_on
         target: !input switch_on
         continue_on_error: true
     continue_on_error: true
   - if:
-      - "{{ (switch_off | default([])) != [] }}"
+      - "{{ (switch_off | default({})) | length > 0 }}"
     then:
       - service: homeassistant.turn_off
         target: !input switch_off
         continue_on_error: true
     continue_on_error: true
   - if:
-      - "{{ (fan_on | default([])) != [] }}"
+      - "{{ (fan_on | default({})) | length > 0 }}"
     then:
       - service: homeassistant.turn_on
         target: !input fan_on
         continue_on_error: true
     continue_on_error: true
   - if:
-      - "{{ (fan_off | default([])) != [] }}"
+      - "{{ (fan_off | default({})) | length > 0 }}"
     then:
       - service: homeassistant.turn_off
         target: !input fan_off
         continue_on_error: true
     continue_on_error: true
   - if:
-      - "{{ (cover_open | default([])) != [] }}"
+      - "{{ (cover_open | default({})) | length > 0 }}"
     then:
       - service: cover.open_cover
         target: !input cover_open
         continue_on_error: true
     continue_on_error: true
   - if:
-      - "{{ (cover_close | default([])) != [] }}"
+      - "{{ (cover_close | default({})) | length > 0 }}"
     then:
       - service: cover.close_cover
         target: !input cover_close
         continue_on_error: true
     continue_on_error: true
   - if:
-      - "{{ (airc_on | default([])) != [] }}"
+      - "{{ (airc_on | default({})) | length > 0 }}"
     then:
       - service: climate.set_temperature
         data:
@@ -499,7 +499,7 @@ action:
         continue_on_error: true
     continue_on_error: true
   - if:
-      - "{{ (airc_on_2 | default([])) != [] }}"
+      - "{{ (airc_on_2 | default({})) | length > 0 }}"
     then:
       - service: climate.set_temperature
         data:
@@ -515,7 +515,7 @@ action:
         continue_on_error: true
     continue_on_error: true
   - if:
-      - "{{ (airc_off | default([])) != [] }}"
+      - "{{ (airc_off | default({})) | length > 0 }}"
     then:
       - service: climate.turn_off
         target: !input airc_off
