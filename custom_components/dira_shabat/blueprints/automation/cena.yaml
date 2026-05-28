@@ -427,16 +427,15 @@ action:
   - if:
       - "{{ (light_on | default([])) != [] }}"
     then:
-      - choose:
-          - conditions:
-              - "{{ (var_brightness | int(100)) < 100 }}"
-            sequence:
-              - service: light.turn_on
-                data:
-                  brightness_pct: "{{ var_brightness | int(100) }}"
-                target: !input light_on
-                continue_on_error: true
-        default:
+      - if:
+          - "{{ (var_brightness | int(100)) < 100 }}"
+        then:
+          - service: light.turn_on
+            data:
+              brightness_pct: "{{ var_brightness | int(100) }}"
+            target: !input light_on
+            continue_on_error: true
+        else:
           - service: homeassistant.turn_on
             target: !input light_on
             continue_on_error: true
