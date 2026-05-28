@@ -93,7 +93,7 @@ blueprint:
             text:
 
     lights_on_settings:
-      name: Luces / Switches a encender
+      name: Luces a encender
       icon: mdi:lightbulb-group
       collapsed: true
       input:
@@ -103,11 +103,9 @@ blueprint:
           selector:
             target:
               entity:
-                domain:
-                  - light
-                  - switch
+                domain: light
     lights_off_settings:
-      name: Luces / Switches a apagar
+      name: Luces a apagar
       icon: mdi:lightbulb-group-off-outline
       collapsed: true
       input:
@@ -117,9 +115,79 @@ blueprint:
           selector:
             target:
               entity:
-                domain:
-                  - light
-                  - switch
+                domain: light
+    switches_on_settings:
+      name: Switches a encender
+      icon: mdi:toggle-switch
+      collapsed: true
+      input:
+        switch_on:
+          name: Encender
+          default: []
+          selector:
+            target:
+              entity:
+                domain: switch
+    switches_off_settings:
+      name: Switches a apagar
+      icon: mdi:toggle-switch-off
+      collapsed: true
+      input:
+        switch_off:
+          name: Apagar
+          default: []
+          selector:
+            target:
+              entity:
+                domain: switch
+    fans_on_settings:
+      name: Ventiladores a encender
+      icon: mdi:fan
+      collapsed: true
+      input:
+        fan_on:
+          name: Encender
+          default: []
+          selector:
+            target:
+              entity:
+                domain: fan
+    fans_off_settings:
+      name: Ventiladores a apagar
+      icon: mdi:fan-off
+      collapsed: true
+      input:
+        fan_off:
+          name: Apagar
+          default: []
+          selector:
+            target:
+              entity:
+                domain: fan
+    covers_open_settings:
+      name: Cortinas a abrir
+      icon: mdi:blinds-open
+      collapsed: true
+      input:
+        cover_open:
+          name: Abrir
+          default: []
+          selector:
+            target:
+              entity:
+                domain: cover
+    covers_close_settings:
+      name: Cortinas a cerrar
+      icon: mdi:blinds
+      collapsed: true
+      input:
+        cover_close:
+          name: Cerrar
+          default: []
+          selector:
+            target:
+              entity:
+                domain: cover
     climate_on_settings:
       name: A/C a encender (grupo 1)
       icon: mdi:air-conditioner
@@ -316,6 +384,48 @@ action:
     then:
       - service: homeassistant.turn_off
         target: !input light_off
+        continue_on_error: true
+    continue_on_error: true
+  - if:
+      - "{{ (switch_on | default([])) != [] }}"
+    then:
+      - service: homeassistant.turn_on
+        target: !input switch_on
+        continue_on_error: true
+    continue_on_error: true
+  - if:
+      - "{{ (switch_off | default([])) != [] }}"
+    then:
+      - service: homeassistant.turn_off
+        target: !input switch_off
+        continue_on_error: true
+    continue_on_error: true
+  - if:
+      - "{{ (fan_on | default([])) != [] }}"
+    then:
+      - service: homeassistant.turn_on
+        target: !input fan_on
+        continue_on_error: true
+    continue_on_error: true
+  - if:
+      - "{{ (fan_off | default([])) != [] }}"
+    then:
+      - service: homeassistant.turn_off
+        target: !input fan_off
+        continue_on_error: true
+    continue_on_error: true
+  - if:
+      - "{{ (cover_open | default([])) != [] }}"
+    then:
+      - service: cover.open_cover
+        target: !input cover_open
+        continue_on_error: true
+    continue_on_error: true
+  - if:
+      - "{{ (cover_close | default([])) != [] }}"
+    then:
+      - service: cover.close_cover
+        target: !input cover_close
         continue_on_error: true
     continue_on_error: true
   - if:
