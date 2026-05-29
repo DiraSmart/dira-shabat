@@ -563,7 +563,7 @@ action:
                 - >-
                   {{ not var_respeto_override
                      or trigger.id in ['fija', 'helper']
-                     or states[repeat.item].last_changed <= scheduled_time }}
+                     or states[repeat.item].last_changed <= as_datetime(scheduled_time) }}
               then:
                 - if:
                     - "{{ (var_transition | int(0)) > 0 }}"
@@ -594,7 +594,7 @@ action:
                 - >-
                   {{ not var_respeto_override
                      or trigger.id in ['fija', 'helper']
-                     or states[repeat.item].last_changed <= scheduled_time }}
+                     or states[repeat.item].last_changed <= as_datetime(scheduled_time) }}
               then:
                 - service: light.turn_off
                   target:
@@ -612,7 +612,7 @@ action:
                 - >-
                   {{ not var_respeto_override
                      or trigger.id in ['fija', 'helper']
-                     or states[repeat.item].last_changed <= scheduled_time }}
+                     or states[repeat.item].last_changed <= as_datetime(scheduled_time) }}
               then:
                 - service: switch.turn_on
                   target:
@@ -630,7 +630,7 @@ action:
                 - >-
                   {{ not var_respeto_override
                      or trigger.id in ['fija', 'helper']
-                     or states[repeat.item].last_changed <= scheduled_time }}
+                     or states[repeat.item].last_changed <= as_datetime(scheduled_time) }}
               then:
                 - service: switch.turn_off
                   target:
@@ -648,7 +648,7 @@ action:
                 - >-
                   {{ not var_respeto_override
                      or trigger.id in ['fija', 'helper']
-                     or states[repeat.item].last_changed <= scheduled_time }}
+                     or states[repeat.item].last_changed <= as_datetime(scheduled_time) }}
               then:
                 - service: fan.turn_on
                   target:
@@ -666,7 +666,7 @@ action:
                 - >-
                   {{ not var_respeto_override
                      or trigger.id in ['fija', 'helper']
-                     or states[repeat.item].last_changed <= scheduled_time }}
+                     or states[repeat.item].last_changed <= as_datetime(scheduled_time) }}
               then:
                 - service: fan.turn_off
                   target:
@@ -684,7 +684,7 @@ action:
                 - >-
                   {{ not var_respeto_override
                      or trigger.id in ['fija', 'helper']
-                     or states[repeat.item].last_changed <= scheduled_time }}
+                     or states[repeat.item].last_changed <= as_datetime(scheduled_time) }}
               then:
                 - service: cover.open_cover
                   target:
@@ -702,7 +702,7 @@ action:
                 - >-
                   {{ not var_respeto_override
                      or trigger.id in ['fija', 'helper']
-                     or states[repeat.item].last_changed <= scheduled_time }}
+                     or states[repeat.item].last_changed <= as_datetime(scheduled_time) }}
               then:
                 - service: cover.close_cover
                   target:
@@ -720,7 +720,7 @@ action:
                 - >-
                   {{ not var_respeto_override
                      or trigger.id in ['fija', 'helper']
-                     or states[repeat.item].last_changed <= scheduled_time }}
+                     or states[repeat.item].last_changed <= as_datetime(scheduled_time) }}
               then:
                 - service: climate.set_temperature
                   data:
@@ -756,7 +756,7 @@ action:
                 - >-
                   {{ not var_respeto_override
                      or trigger.id in ['fija', 'helper']
-                     or states[repeat.item].last_changed <= scheduled_time }}
+                     or states[repeat.item].last_changed <= as_datetime(scheduled_time) }}
               then:
                 - service: climate.set_temperature
                   data:
@@ -792,7 +792,7 @@ action:
                 - >-
                   {{ not var_respeto_override
                      or trigger.id in ['fija', 'helper']
-                     or states[repeat.item].last_changed <= scheduled_time }}
+                     or states[repeat.item].last_changed <= as_datetime(scheduled_time) }}
               then:
                 - service: climate.turn_off
                   target:
