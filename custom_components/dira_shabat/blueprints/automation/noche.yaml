@@ -530,7 +530,7 @@ condition:
     value_template: >-
       {{ is_state('binary_sensor.dira_shabat_issur_melacha', 'on')
          or (var_permitir_erev
-             and is_state('binary_sensor.dira_shabat_erev_shabbat_hag', 'on')) }}
+             and is_state('binary_sensor.dira_shabat_erev_shabbat_chag', 'on')) }}
   - condition: template
     value_template: >-
       {% if var_opciones == 'siempre' %} true
@@ -548,7 +548,7 @@ condition:
   - condition: template
     value_template: >-
       {{ not var_skip_ends or
-         is_state('binary_sensor.dira_shabat_ends_today', 'off') }}
+         is_state('sensor.dira_shabat_ends_today', 'off') }}
 
 action:
   - if:
