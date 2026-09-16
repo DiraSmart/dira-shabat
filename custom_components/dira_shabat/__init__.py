@@ -33,8 +33,7 @@ from .coordinator import DiraShabatCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 CARD_FILENAME = "dira-shabat-card.js"
-CARD_URL_BASE = f"/local/{CARD_FILENAME}"
-CARD_URL_FALLBACK = f"/{DOMAIN}_files/{CARD_FILENAME}"
+CARD_URL_BASE = f"/{DOMAIN}_files/{CARD_FILENAME}"
 
 STORAGE_VERSION = 1
 
@@ -49,18 +48,32 @@ def _get_version() -> str:
 
 
 async def _async_install_card(hass: HomeAssistant) -> None:
-    """Copy card JS to /config/www/ and register as Lovelace resource (with version cache-busting)."""
+    """Serve the card JS from a long-cached static route and register it with Lovelace.
+
+    The URL is version-locked (?v=<manifest version>), so it's registered with
+    cache_headers=True: once a browser/companion-app session fetches it
+    successfully, it won't need to re-fetch on every navigation. Previously
+    this served the card from a copy in /config/www without cache headers,
+    which meant every dashboard load on a flaky connection (mobile data) was
+    a fresh fetch that could silently fail and leave the custom element
+    unregistered until the next reload - the "works sometimes" symptom.
+    """
     version = _get_version()
     card_url = f"{CARD_URL_BASE}?v={version}"
     src = Path(__file__).parent / "www" / CARD_FILENAME
-    dst = Path(hass.config.path("www", CARD_FILENAME))
 
     try:
         await hass.http.async_register_static_paths([
-            StaticPathConfig(CARD_URL_FALLBACK, str(src), False)
+            StaticPathConfig(CARD_URL_BASE, str(src), True)
         ])
+        _LOGGER.info("Serving card from %s (v%s)", card_url, version)
     except Exception as err:  # noqa: BLE001
         _LOGGER.warning("Could not register static path: %s", err)
+
+    # Best-effort copy into /config/www too, so dashboards that still point at
+    # the old /local/ URL (from before this switched to a dedicated route)
+    # keep working until they're migrated below.
+    dst = Path(hass.config.path("www", CARD_FILENAME))
 
     def _copy_file() -> str:
         dst.parent.mkdir(parents=True, exist_ok=True)
@@ -72,15 +85,9 @@ async def _async_install_card(hass: HomeAssistant) -> None:
 
     try:
         result = await hass.async_add_executor_job(_copy_file)
-        _LOGGER.info("Card %s at %s (v%s)", result, dst, version)
+        _LOGGER.debug("Fallback copy %s at %s", result, dst)
     except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Could not copy card: %s - using fallback URL", err)
-        try:
-            from homeassistant.components.frontend import add_extra_js_url
-            add_extra_js_url(hass, f"{CARD_URL_FALLBACK}?v={version}")
-        except Exception:  # noqa: BLE001
-            pass
-        return
+        _LOGGER.debug("Could not write fallback copy: %s", err)
 
     try:
         lovelace_data = hass.data.get("lovelace")
@@ -96,8 +103,11 @@ async def _async_install_card(hass: HomeAssistant) -> None:
             await resources.async_load()
 
         items = list(resources.async_items()) if hasattr(resources, "async_items") else []
+        # Match by filename (not just the current CARD_URL_BASE) so an old
+        # /local/dira-shabat-card.js resource from a prior version gets
+        # migrated to the new cached URL instead of left stale alongside it.
         existing = next(
-            (r for r in items if r.get("url", "").split("?")[0] == CARD_URL_BASE),
+            (r for r in items if r.get("url", "").split("?")[0].endswith(CARD_FILENAME)),
             None,
         )
 
@@ -113,7 +123,7 @@ async def _async_install_card(hass: HomeAssistant) -> None:
     except Exception as err:  # noqa: BLE001
         _LOGGER.debug("Could not register Lovelace resource: %s", err)
 
-    # Inject via frontend as a safety net (uses the versioned URL)
+    # Inject via frontend as a safety net (uses the versioned, cached URL)
     try:
         from homeassistant.components.frontend import add_extra_js_url
         add_extra_js_url(hass, card_url)
