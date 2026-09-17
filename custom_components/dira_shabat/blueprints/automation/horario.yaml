@@ -1,18 +1,21 @@
 blueprint:
-  name: Dira Shabat — Día
+  name: Dira Shabat — Horario
   description: >
-    Acciones diurnas (luces, switches, ventiladores, cortinas, A/C) durante
-    issur melacha. El filtro de almuerzo (Casa / Afuera) sigue disponible para
-    condicionar las acciones según si almorzamos en casa o no.
+    Acciones programadas (luces, switches, ventiladores, cortinas, A/C) a una
+    hora fija o relativa a velas/havdalá. Reemplaza a los blueprints "Día" y
+    "Noche": elegís en qué momento corre (durante Shabat/Jag, durante Erev
+    antes de velas, o ambos) y si depende del almuerzo o de la cena.
+    Ejemplo Erev: helper = sensor de velas, desfase = -10, momento = Erev
+    → corre 10 minutos antes del encendido de velas.
   domain: automation
-  source_url: https://github.com/DiraSmart/dira-shabat/blob/master/custom_components/dira_shabat/blueprints/automation/dia.yaml
+  source_url: https://github.com/DiraSmart/dira-shabat/blob/master/custom_components/dira_shabat/blueprints/automation/horario.yaml
   input:
     hora:
       name: Hora fija
       description: >
         A qué hora del día se dispara la acción. Ignorado si elegís un
         helper en la sección "Helper de hora".
-      default: "12:30:00"
+      default: "21:00:00"
       selector:
         time:
     helper_settings:
@@ -55,21 +58,44 @@ blueprint:
               step: 1
               unit_of_measurement: min
               mode: box
-    opciones:
-      name: ¿Depende del almuerzo?
+    momento:
+      name: ¿Cuándo corre?
       description: >
-        Casa = solo si almorzamos en casa. Afuera = solo si NO almorzamos en
-        casa. Siempre = ignora el almuerzo y corre cuando hay issur.
+        Shabat/Jag = solo mientras hay issur melacha (desde velas hasta
+        havdalá). Erev = solo antes del encendido de velas, el día previo
+        a Shabat/Jag (útil para preparativos: cámaras, neveras, luces).
+        Ambos = cualquiera de los dos. Con Erev, dejá "Día del período"
+        en "Cualquier día" y la comida en "Siempre", porque antes de velas
+        el día todavía es 0 y los sensores de comida están apagados.
+      default: issur
+      selector:
+        select:
+          options:
+            - label: Durante Shabat/Jag (issur melacha)
+              value: issur
+            - label: Durante Erev (antes de velas)
+              value: erev
+            - label: Ambos (Erev y Shabat/Jag)
+              value: ambos
+    comida:
+      name: ¿Depende de alguna comida?
+      description: >
+        Casa = solo si esa comida es en casa. Afuera = solo si NO es en
+        casa. Siempre = ignora las comidas.
       default: siempre
       selector:
         select:
           options:
-            - label: Solo si almuerzo en Casa
-              value: "on"
-            - label: Solo si almuerzo Afuera
-              value: "off"
-            - label: Siempre (ignora el almuerzo)
+            - label: Siempre (ignora las comidas)
               value: siempre
+            - label: Solo si almuerzo en Casa
+              value: almuerzo_on
+            - label: Solo si almuerzo Afuera
+              value: almuerzo_off
+            - label: Solo si cena en Casa
+              value: cena_on
+            - label: Solo si cena Afuera
+              value: cena_off
 
     advanced_filters:
       name: Filtros avanzados (opcional)
@@ -103,17 +129,6 @@ blueprint:
           default: ""
           selector:
             text:
-        permitir_erev:
-          name: Permitir disparo durante Erev (antes de velas)
-          description: >
-            Default OFF. Si lo activás, la automatización puede correr
-            también durante Erev Shabat/Jag (antes del encendido de
-            velas). Para almuerzo casi nunca aplica (el almuerzo es
-            durante el día de issur). Si lo usás, recordá poner "Día
-            del período = Cualquier día".
-          default: false
-          selector:
-            boolean:
         respeto_override:
           name: Respetar override manual en retries
           description: >
@@ -427,7 +442,8 @@ trigger_variables:
   var_offset: !input offset_min
 
 variables:
-  var_opciones: !input opciones
+  var_momento: !input momento
+  var_comida: !input comida
   var_dia_filtro: !input dia_filtro
   var_skip_ends: !input skip_ends_today
   var_notify: !input notify_target
@@ -444,7 +460,6 @@ variables:
   var_helper_dt_var: !input hora_helper
   var_helper_dira_var: !input hora_helper_dira
   var_helper_var: "{{ var_helper_dira_var if var_helper_dira_var else var_helper_dt_var }}"
-  var_permitir_erev: !input permitir_erev
   var_respeto_override: !input respeto_override
   var_time_var: !input hora
   var_offset_var: !input offset_min
@@ -526,13 +541,20 @@ condition:
     state: "on"
   - condition: template
     value_template: >-
-      {{ is_state('binary_sensor.dira_shabat_issur_melacha', 'on')
-         or (var_permitir_erev
-             and is_state('binary_sensor.dira_shabat_erev_shabbat_hag', 'on')) }}
+      {% set issur = is_state('binary_sensor.dira_shabat_issur_melacha', 'on') %}
+      {% set erev = is_state('binary_sensor.dira_shabat_erev_shabbat_hag', 'on') %}
+      {% if var_momento == 'issur' %} {{ issur }}
+      {% elif var_momento == 'erev' %} {{ erev }}
+      {% else %} {{ issur or erev }}
+      {% endif %}
   - condition: template
     value_template: >-
-      {% if var_opciones == 'siempre' %} true
-      {% else %} {{ is_state('binary_sensor.dira_shabat_lunch_today', var_opciones) }}
+      {% if var_comida == 'siempre' %} true
+      {% elif var_comida == 'almuerzo_on' %} {{ is_state('binary_sensor.dira_shabat_lunch_today', 'on') }}
+      {% elif var_comida == 'almuerzo_off' %} {{ is_state('binary_sensor.dira_shabat_lunch_today', 'off') }}
+      {% elif var_comida == 'cena_on' %} {{ is_state('binary_sensor.dira_shabat_dinner_today', 'on') }}
+      {% elif var_comida == 'cena_off' %} {{ is_state('binary_sensor.dira_shabat_dinner_today', 'off') }}
+      {% else %} true
       {% endif %}
   - condition: template
     value_template: >-
@@ -801,5 +823,5 @@ action:
     then:
       - service: "{{ var_notify }}"
         data:
-          message: "Dira Shabat día → ejecutado @ {{ now().strftime('%H:%M') }}"
+          message: "Dira Shabat horario → ejecutado @ {{ now().strftime('%H:%M') }}"
         continue_on_error: true
