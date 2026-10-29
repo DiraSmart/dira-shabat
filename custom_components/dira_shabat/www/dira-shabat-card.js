@@ -3,8 +3,11 @@
  * Manages Shabbat and Jewish Holiday display with meal toggles
  */
 
+// Keep in sync with manifest.json (checked by tests/test_card_version.py).
+const CARD_VERSION = "2.16.1";
+
 console.info(
-  `%c DIRA-SHABAT-CARD %c v1.0.0 `,
+  `%c DIRA-SHABAT-CARD %c v${CARD_VERSION} `,
   "color: white; background: #6a3de8; font-weight: 700; padding: 2px 8px; border-radius: 4px 0 0 4px;",
   "color: #6a3de8; background: #ede7f6; font-weight: 700; padding: 2px 8px; border-radius: 0 4px 4px 0;"
 );
@@ -372,6 +375,11 @@ class DiraShabatCard extends HTMLElement {
     for (const [key, builder] of Object.entries(AUTO_ENTITIES)) {
       if (!this._config[key]) this._config[key] = builder(prefix);
     }
+
+    // Config changes (language, show_header, entities) don't alter the state
+    // signature, so force a re-render on the next hass update / right now.
+    this._lastSig = null;
+    if (this._hass) this._render();
   }
 
   getCardSize() {

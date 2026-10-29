@@ -33,7 +33,15 @@ from .coordinator import DiraShabatCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 CARD_FILENAME = "dira-shabat-card.js"
-CARD_URL_BASE = f"/{DOMAIN}_files/{CARD_FILENAME}"
+LOADER_FILENAME = "dira-shabat-loader.js"
+FILES_URL_BASE = f"/{DOMAIN}_files"
+CARD_URL_BASE = f"{FILES_URL_BASE}/{CARD_FILENAME}"
+LOADER_URL_BASE = f"{FILES_URL_BASE}/{LOADER_FILENAME}"
+
+# How long to keep waiting for Lovelace storage to become available before
+# giving up on registering the card as a dashboard resource.
+LOVELACE_RETRY_SECONDS = 5
+LOVELACE_RETRY_ATTEMPTS = 24  # 2 minutes
 
 STORAGE_VERSION = 1
 
@@ -50,85 +58,115 @@ def _get_version() -> str:
 async def _async_install_card(hass: HomeAssistant) -> None:
     """Serve the card JS from a long-cached static route and register it with Lovelace.
 
-    The URL is version-locked (?v=<manifest version>), so it's registered with
-    cache_headers=True: once a browser/companion-app session fetches it
-    successfully, it won't need to re-fetch on every navigation. Previously
-    this served the card from a copy in /config/www without cache headers,
-    which meant every dashboard load on a flaky connection (mobile data) was
-    a fresh fetch that could silently fail and leave the custom element
-    unregistered until the next reload - the "works sometimes" symptom.
+    Both URLs are version-locked (?v=<manifest version>), so the route is
+    registered with cache_headers=True: once a browser/companion-app session
+    fetches the card successfully, it is reused from cache on every later
+    navigation (same pattern Home Assistant uses for /frontend_latest and
+    /local). Bumping the manifest version changes the URL and invalidates it.
+
+    Two independent load paths are wired up:
+
+    * ``add_extra_js_url`` injects the *loader* into index.html. The loader
+      imports the card and retries with backoff if the fetch fails (flaky
+      mobile data) or 404s (dashboard opened while HA is still starting and
+      this route is not registered yet). The Lovelace frontend itself only
+      tries once per page load, which is what caused the intermittent
+      "Custom element doesn't exist" error.
+    * The Lovelace resource points at the card directly, as a second,
+      independent attempt (and the only one on dashboards loaded before the
+      integration finished setting up).
     """
     version = _get_version()
     card_url = f"{CARD_URL_BASE}?v={version}"
-    src = Path(__file__).parent / "www" / CARD_FILENAME
+    loader_url = f"{LOADER_URL_BASE}?v={version}"
+    www_dir = Path(__file__).parent / "www"
 
     try:
         await hass.http.async_register_static_paths([
-            StaticPathConfig(CARD_URL_BASE, str(src), True)
+            StaticPathConfig(FILES_URL_BASE, str(www_dir), True)
         ])
         _LOGGER.info("Serving card from %s (v%s)", card_url, version)
     except Exception as err:  # noqa: BLE001
         _LOGGER.warning("Could not register static path: %s", err)
 
-    # Best-effort copy into /config/www too, so dashboards that still point at
-    # the old /local/ URL (from before this switched to a dedicated route)
-    # keep working until they're migrated below.
-    dst = Path(hass.config.path("www", CARD_FILENAME))
-
-    def _copy_file() -> str:
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        # Always overwrite - HACS may preserve mtimes, so compare size+content instead
-        if dst.exists() and dst.read_bytes() == src.read_bytes():
-            return "unchanged"
-        shutil.copy2(src, dst)
-        return "copied"
-
     try:
-        result = await hass.async_add_executor_job(_copy_file)
-        _LOGGER.debug("Fallback copy %s at %s", result, dst)
+        from homeassistant.components.frontend import add_extra_js_url
+        add_extra_js_url(hass, loader_url)
     except Exception as err:  # noqa: BLE001
-        _LOGGER.debug("Could not write fallback copy: %s", err)
+        _LOGGER.debug("Could not add extra JS URL: %s", err)
+
+    # Lovelace storage may not be ready yet (or dashboards may be in YAML
+    # mode, where there is nothing to register). Don't block setup on it.
+    hass.async_create_background_task(
+        _async_register_lovelace_resource(hass, card_url),
+        name=f"{DOMAIN}_register_lovelace_resource",
+    )
+
+
+async def _async_register_lovelace_resource(hass: HomeAssistant, card_url: str) -> None:
+    """Register (or migrate) the card as a Lovelace storage resource.
+
+    Retries every LOVELACE_RETRY_SECONDS while Lovelace isn't available yet.
+    Matches existing entries by filename so stale URLs from older versions
+    (/local/..., unversioned, previous ?v=) get updated in place, and removes
+    any duplicate entries so the browser only loads the card once.
+    """
+    for attempt in range(1, LOVELACE_RETRY_ATTEMPTS + 1):
+        resources = _get_lovelace_resources(hass)
+        if resources is not None:
+            break
+        if attempt == LOVELACE_RETRY_ATTEMPTS:
+            _LOGGER.warning(
+                "Lovelace resources not available after %ss; card not registered "
+                "as a dashboard resource (it is still loaded via extra JS URL)",
+                LOVELACE_RETRY_SECONDS * LOVELACE_RETRY_ATTEMPTS,
+            )
+            return
+        await asyncio.sleep(LOVELACE_RETRY_SECONDS)
 
     try:
-        lovelace_data = hass.data.get("lovelace")
-        if lovelace_data is None:
-            return
-        resources = getattr(lovelace_data, "resources", None)
-        if resources is None and isinstance(lovelace_data, dict):
-            resources = lovelace_data.get("resources")
-        if resources is None:
-            return
-
-        if hasattr(resources, "async_load") and not getattr(resources, "loaded", True):
+        if not getattr(resources, "loaded", True) and hasattr(resources, "async_load"):
             await resources.async_load()
+            resources.loaded = True
 
-        items = list(resources.async_items()) if hasattr(resources, "async_items") else []
-        # Match by filename (not just the current CARD_URL_BASE) so an old
-        # /local/dira-shabat-card.js resource from a prior version gets
-        # migrated to the new cached URL instead of left stale alongside it.
-        existing = next(
-            (r for r in items if r.get("url", "").split("?")[0].endswith(CARD_FILENAME)),
-            None,
-        )
+        if not hasattr(resources, "async_items"):
+            return  # YAML-mode resources: user manages them in configuration.yaml
+        matches = [
+            r for r in list(resources.async_items())
+            if r.get("url", "").split("?")[0].endswith(CARD_FILENAME)
+        ]
 
-        if existing is None:
+        if not matches:
             if hasattr(resources, "async_create_item"):
                 await resources.async_create_item({"res_type": "module", "url": card_url})
                 _LOGGER.info("Registered Lovelace resource %s", card_url)
-        elif existing.get("url") != card_url and hasattr(resources, "async_update_item"):
+            return
+
+        keep, *duplicates = matches
+        if (keep.get("url") != card_url or keep.get("res_type") != "module") and hasattr(
+            resources, "async_update_item"
+        ):
             await resources.async_update_item(
-                existing["id"], {"res_type": "module", "url": card_url}
+                keep["id"], {"res_type": "module", "url": card_url}
             )
             _LOGGER.info("Updated Lovelace resource URL to %s", card_url)
+        for dup in duplicates:
+            if hasattr(resources, "async_delete_item"):
+                await resources.async_delete_item(dup["id"])
+                _LOGGER.info("Removed duplicate Lovelace resource %s", dup.get("url"))
     except Exception as err:  # noqa: BLE001
-        _LOGGER.debug("Could not register Lovelace resource: %s", err)
+        _LOGGER.warning("Could not register Lovelace resource: %s", err)
 
-    # Inject via frontend as a safety net (uses the versioned, cached URL)
-    try:
-        from homeassistant.components.frontend import add_extra_js_url
-        add_extra_js_url(hass, card_url)
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.debug("Could not add extra JS URL: %s", err)
+
+def _get_lovelace_resources(hass: HomeAssistant):
+    """Return the Lovelace resource collection, or None if not available yet."""
+    lovelace_data = hass.data.get("lovelace")
+    if lovelace_data is None:
+        return None
+    resources = getattr(lovelace_data, "resources", None)
+    if resources is None and isinstance(lovelace_data, dict):
+        resources = lovelace_data.get("resources")
+    return resources
 
 
 async def _async_install_blueprints(hass: HomeAssistant) -> None:
