@@ -4,7 +4,7 @@
  */
 
 // Keep in sync with manifest.json (checked by tests/test_card_version.py).
-const CARD_VERSION = "2.16.1";
+const CARD_VERSION = "2.16.2";
 
 console.info(
   `%c DIRA-SHABAT-CARD %c v${CARD_VERSION} `,

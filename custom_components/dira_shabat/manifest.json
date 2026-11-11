@@ -4,9 +4,9 @@
   "codeowners": ["@jbran"],
   "config_flow": true,
   "dependencies": ["frontend", "http", "lovelace"],
-  "documentation": "https://github.com/jbran/dira-shabat",
+  "documentation": "https://github.com/DiraSmart/dira-shabat",
   "iot_class": "calculated",
-  "issue_tracker": "https://github.com/jbran/dira-shabat/issues",
+  "issue_tracker": "https://github.com/DiraSmart/dira-shabat/issues",
   "requirements": ["hdate[astral]>=1.1.2"],
-  "version": "2.16.1"
+  "version": "2.16.2"
 }

@@ -6,7 +6,7 @@ Integración personalizada de Home Assistant para gestionar el modo Shabat y fes
 
 ## Features / Funcionalidades
 
-- **Shabbat Mode**: Automatic toggle based on `issur_melacha` from Jewish Calendar
+- **Shabbat Mode**: Automatic `issur_melacha` detection computed locally with `hdate` from your Home Assistant location
 - **Multi-day support**: Handles 1, 2, or 3-day holiday periods (Yom Tov + Shabbat)
 - **Meal toggles**: Independent dinner/lunch toggles per day of the period
 - **Auto-reset**: Configurable defaults that reset after each Shabbat/Holiday ends
@@ -16,32 +16,47 @@ Integración personalizada de Home Assistant para gestionar el modo Shabat y fes
 ## Requirements / Requisitos
 
 - Home Assistant 2024.1.0 or later
-- [Jewish Calendar](https://www.home-assistant.io/integrations/jewish_calendar/) integration installed and configured
+- Home Assistant location (latitude, longitude, time zone, elevation) configured. No other integration is required.
 
 ## Installation / Instalación
 
-### HACS (Recommended)
+### Marketplace (Home Assistant 2026.11 or later, recommended)
 
-1. Add this repository as a custom repository in HACS
+1. Go to **Settings > Marketplace**, open the menu and choose **Add custom repository**
+2. Paste `https://github.com/DiraSmart/dira-shabat`, type **Integration**
+3. Open "Dira Shabat" and install, then restart Home Assistant
+4. Go to **Settings > Devices & services > Add Integration > Dira Shabat**
+
+The Marketplace needs a connected GitHub account on that Home Assistant instance to check custom repositories for updates.
+
+### HACS (Home Assistant before 2026.11)
+
+1. Add this repository as a custom repository in HACS (type: Integration)
 2. Search for "Dira Shabat" and install
 3. Restart Home Assistant
-4. Go to **Settings > Integrations > Add Integration > Dira Shabat**
+4. Go to **Settings > Devices & services > Add Integration > Dira Shabat**
 
 ### Manual
 
 1. Copy the `custom_components/dira_shabat/` folder to your `config/custom_components/` directory
-2. Copy `www/dira-shabat-card.js` to your `config/www/` directory
-3. Restart Home Assistant
-4. Go to **Settings > Integrations > Add Integration > Dira Shabat**
+2. Restart Home Assistant
+3. Go to **Settings > Devices & services > Add Integration > Dira Shabat**
 
 ## Lovelace Card Setup
 
-### Add the resource
+### Resource
 
-Go to **Settings > Dashboards > Resources** and add:
+The integration serves the card itself and registers it as a dashboard resource automatically
+(`/dira_shabat_files/dira-shabat-card.js?v=<version>`). Nothing to copy or add by hand.
 
-- URL: `/dira_shabat/dira-shabat-card.js`
-- Type: JavaScript Module
+If your dashboards are in YAML mode, add the resource manually in `configuration.yaml`:
+
+```yaml
+lovelace:
+  resources:
+    - url: /dira_shabat_files/dira-shabat-card.js
+      type: module
+```
 
 ### Add the card
 
