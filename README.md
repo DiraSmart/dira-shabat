@@ -128,4 +128,11 @@ entity_prefix: dira_shabat
 
 ## License
 
-MIT
+Copyright (C) 2026 DiraSmart
+
+This program is free software: you can redistribute it and/or modify it under the terms of the
+GNU General Public License as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version. See [LICENSE](LICENSE) for the full text.
+
+Este programa es software libre bajo la licencia GNU GPL v3. Puedes usarlo, modificarlo y
+redistribuirlo, siempre que las versiones modificadas que distribuyas se publiquen bajo la misma licencia.
